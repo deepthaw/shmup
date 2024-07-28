@@ -1,0 +1,8 @@
+[
+{
+  "directory": "/home/tony/git/shmup",
+  "command": "/usr/bin/c++  -isystem /usr/include/SDL2  -o CMakeFiles/SDL2Test.dir/Main.cpp.o -c /home/tony/git/shmup/Main.cpp",
+  "file": "/home/tony/git/shmup/Main.cpp",
+  "output": "CMakeFiles/SDL2Test.dir/Main.cpp.o"
+}
+]
