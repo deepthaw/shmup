@@ -117,41 +117,137 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named SDL2Test
+# Target rules for targets named shmup
 
 # Build rule for target.
-SDL2Test: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 SDL2Test
-.PHONY : SDL2Test
+shmup: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 shmup
+.PHONY : shmup
 
 # fast build rule for target.
-SDL2Test/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/SDL2Test.dir/build.make CMakeFiles/SDL2Test.dir/build
-.PHONY : SDL2Test/fast
+shmup/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/shmup.dir/build.make CMakeFiles/shmup.dir/build
+.PHONY : shmup/fast
 
-Main.o: Main.cpp.o
-.PHONY : Main.o
+main.o: main.c.o
+.PHONY : main.o
 
 # target to build an object file
-Main.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/SDL2Test.dir/build.make CMakeFiles/SDL2Test.dir/Main.cpp.o
-.PHONY : Main.cpp.o
+main.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/shmup.dir/build.make CMakeFiles/shmup.dir/main.c.o
+.PHONY : main.c.o
 
-Main.i: Main.cpp.i
-.PHONY : Main.i
+main.i: main.c.i
+.PHONY : main.i
 
 # target to preprocess a source file
-Main.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/SDL2Test.dir/build.make CMakeFiles/SDL2Test.dir/Main.cpp.i
-.PHONY : Main.cpp.i
+main.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/shmup.dir/build.make CMakeFiles/shmup.dir/main.c.i
+.PHONY : main.c.i
 
-Main.s: Main.cpp.s
-.PHONY : Main.s
+main.s: main.c.s
+.PHONY : main.s
 
 # target to generate assembly for a file
-Main.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/SDL2Test.dir/build.make CMakeFiles/SDL2Test.dir/Main.cpp.s
-.PHONY : Main.cpp.s
+main.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/shmup.dir/build.make CMakeFiles/shmup.dir/main.c.s
+.PHONY : main.c.s
+
+map.o: map.c.o
+.PHONY : map.o
+
+# target to build an object file
+map.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/shmup.dir/build.make CMakeFiles/shmup.dir/map.c.o
+.PHONY : map.c.o
+
+map.i: map.c.i
+.PHONY : map.i
+
+# target to preprocess a source file
+map.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/shmup.dir/build.make CMakeFiles/shmup.dir/map.c.i
+.PHONY : map.c.i
+
+map.s: map.c.s
+.PHONY : map.s
+
+# target to generate assembly for a file
+map.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/shmup.dir/build.make CMakeFiles/shmup.dir/map.c.s
+.PHONY : map.c.s
+
+sprites.o: sprites.c.o
+.PHONY : sprites.o
+
+# target to build an object file
+sprites.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/shmup.dir/build.make CMakeFiles/shmup.dir/sprites.c.o
+.PHONY : sprites.c.o
+
+sprites.i: sprites.c.i
+.PHONY : sprites.i
+
+# target to preprocess a source file
+sprites.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/shmup.dir/build.make CMakeFiles/shmup.dir/sprites.c.i
+.PHONY : sprites.c.i
+
+sprites.s: sprites.c.s
+.PHONY : sprites.s
+
+# target to generate assembly for a file
+sprites.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/shmup.dir/build.make CMakeFiles/shmup.dir/sprites.c.s
+.PHONY : sprites.c.s
+
+strdup.o: strdup.c.o
+.PHONY : strdup.o
+
+# target to build an object file
+strdup.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/shmup.dir/build.make CMakeFiles/shmup.dir/strdup.c.o
+.PHONY : strdup.c.o
+
+strdup.i: strdup.c.i
+.PHONY : strdup.i
+
+# target to preprocess a source file
+strdup.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/shmup.dir/build.make CMakeFiles/shmup.dir/strdup.c.i
+.PHONY : strdup.c.i
+
+strdup.s: strdup.c.s
+.PHONY : strdup.s
+
+# target to generate assembly for a file
+strdup.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/shmup.dir/build.make CMakeFiles/shmup.dir/strdup.c.s
+.PHONY : strdup.c.s
+
+tiles.o: tiles.c.o
+.PHONY : tiles.o
+
+# target to build an object file
+tiles.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/shmup.dir/build.make CMakeFiles/shmup.dir/tiles.c.o
+.PHONY : tiles.c.o
+
+tiles.i: tiles.c.i
+.PHONY : tiles.i
+
+# target to preprocess a source file
+tiles.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/shmup.dir/build.make CMakeFiles/shmup.dir/tiles.c.i
+.PHONY : tiles.c.i
+
+tiles.s: tiles.c.s
+.PHONY : tiles.s
+
+# target to generate assembly for a file
+tiles.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/shmup.dir/build.make CMakeFiles/shmup.dir/tiles.c.s
+.PHONY : tiles.c.s
 
 # Help Target
 help:
@@ -161,10 +257,22 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
-	@echo "... SDL2Test"
-	@echo "... Main.o"
-	@echo "... Main.i"
-	@echo "... Main.s"
+	@echo "... shmup"
+	@echo "... main.o"
+	@echo "... main.i"
+	@echo "... main.s"
+	@echo "... map.o"
+	@echo "... map.i"
+	@echo "... map.s"
+	@echo "... sprites.o"
+	@echo "... sprites.i"
+	@echo "... sprites.s"
+	@echo "... strdup.o"
+	@echo "... strdup.i"
+	@echo "... strdup.s"
+	@echo "... tiles.o"
+	@echo "... tiles.i"
+	@echo "... tiles.s"
 .PHONY : help
 
 

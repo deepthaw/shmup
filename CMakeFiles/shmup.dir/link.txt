@@ -1,0 +1,1 @@
+/usr/bin/cc CMakeFiles/shmup.dir/main.c.o CMakeFiles/shmup.dir/tiles.c.o CMakeFiles/shmup.dir/sprites.c.o CMakeFiles/shmup.dir/map.c.o CMakeFiles/shmup.dir/strdup.c.o -o shmup  /usr/lib64/libSDL2main.a /usr/lib64/libSDL2-2.0.so.0.3000.3 /usr/lib64/libxml2.so /usr/lib64/liblzma.so /usr/lib64/libz.so -lm -lSDL2_image -lglib-2.0 

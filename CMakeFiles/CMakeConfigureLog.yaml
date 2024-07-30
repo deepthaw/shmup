@@ -493,3 +493,180 @@ events:
       
       
 ...
+
+---
+events:
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/Internal/CheckSourceCompiles.cmake:101 (try_compile)"
+      - "/usr/share/cmake/Modules/CheckCSourceCompiles.cmake:52 (cmake_check_source_compiles)"
+      - "/usr/share/cmake/Modules/FindIconv.cmake:115 (check_c_source_compiles)"
+      - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/usr/lib64/cmake/libxml2/libxml2-config.cmake:54 (find_dependency)"
+      - "CMakeLists.txt:6 (find_package)"
+    checks:
+      - "Performing Test Iconv_IS_BUILT_IN"
+    directories:
+      source: "/home/tony/git/shmup/CMakeFiles/CMakeScratch/TryCompile-KC0GJq"
+      binary: "/home/tony/git/shmup/CMakeFiles/CMakeScratch/TryCompile-KC0GJq"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+    buildResult:
+      variable: "Iconv_IS_BUILT_IN"
+      cached: true
+      stdout: |
+        Change Dir: '/home/tony/git/shmup/CMakeFiles/CMakeScratch/TryCompile-KC0GJq'
+        
+        Run Build Command(s): /usr/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_0572e/fast
+        /usr/bin/gmake  -f CMakeFiles/cmTC_0572e.dir/build.make CMakeFiles/cmTC_0572e.dir/build
+        gmake[1]: Entering directory '/home/tony/git/shmup/CMakeFiles/CMakeScratch/TryCompile-KC0GJq'
+        Building C object CMakeFiles/cmTC_0572e.dir/src.c.o
+        /usr/bin/cc -DIconv_IS_BUILT_IN   -o CMakeFiles/cmTC_0572e.dir/src.c.o -c /home/tony/git/shmup/CMakeFiles/CMakeScratch/TryCompile-KC0GJq/src.c
+        Linking C executable cmTC_0572e
+        /usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_0572e.dir/link.txt --verbose=1
+        /usr/bin/cc CMakeFiles/cmTC_0572e.dir/src.c.o -o cmTC_0572e 
+        gmake[1]: Leaving directory '/home/tony/git/shmup/CMakeFiles/CMakeScratch/TryCompile-KC0GJq'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/Internal/CheckSourceCompiles.cmake:101 (try_compile)"
+      - "/usr/share/cmake/Modules/CheckCSourceCompiles.cmake:52 (cmake_check_source_compiles)"
+      - "/usr/share/cmake/Modules/FindThreads.cmake:97 (CHECK_C_SOURCE_COMPILES)"
+      - "/usr/share/cmake/Modules/FindThreads.cmake:163 (_threads_check_libc)"
+      - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/usr/lib64/cmake/libxml2/libxml2-config.cmake:66 (find_dependency)"
+      - "CMakeLists.txt:6 (find_package)"
+    checks:
+      - "Performing Test CMAKE_HAVE_LIBC_PTHREAD"
+    directories:
+      source: "/home/tony/git/shmup/CMakeFiles/CMakeScratch/TryCompile-jgeo0y"
+      binary: "/home/tony/git/shmup/CMakeFiles/CMakeScratch/TryCompile-jgeo0y"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+    buildResult:
+      variable: "CMAKE_HAVE_LIBC_PTHREAD"
+      cached: true
+      stdout: |
+        Change Dir: '/home/tony/git/shmup/CMakeFiles/CMakeScratch/TryCompile-jgeo0y'
+        
+        Run Build Command(s): /usr/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_5e7b1/fast
+        /usr/bin/gmake  -f CMakeFiles/cmTC_5e7b1.dir/build.make CMakeFiles/cmTC_5e7b1.dir/build
+        gmake[1]: Entering directory '/home/tony/git/shmup/CMakeFiles/CMakeScratch/TryCompile-jgeo0y'
+        Building C object CMakeFiles/cmTC_5e7b1.dir/src.c.o
+        /usr/bin/cc -DCMAKE_HAVE_LIBC_PTHREAD   -o CMakeFiles/cmTC_5e7b1.dir/src.c.o -c /home/tony/git/shmup/CMakeFiles/CMakeScratch/TryCompile-jgeo0y/src.c
+        Linking C executable cmTC_5e7b1
+        /usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_5e7b1.dir/link.txt --verbose=1
+        /usr/bin/cc CMakeFiles/cmTC_5e7b1.dir/src.c.o -o cmTC_5e7b1 
+        gmake[1]: Leaving directory '/home/tony/git/shmup/CMakeFiles/CMakeScratch/TryCompile-jgeo0y'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CheckLibraryExists.cmake:69 (try_compile)"
+      - "/usr/share/cmake/Modules/FindLibLZMA.cmake:97 (CHECK_LIBRARY_EXISTS)"
+      - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/usr/lib64/cmake/libxml2/libxml2-config.cmake:88 (find_dependency)"
+      - "CMakeLists.txt:6 (find_package)"
+    checks:
+      - "Looking for lzma_auto_decoder in /usr/lib64/liblzma.so"
+    directories:
+      source: "/home/tony/git/shmup/CMakeFiles/CMakeScratch/TryCompile-FrT13j"
+      binary: "/home/tony/git/shmup/CMakeFiles/CMakeScratch/TryCompile-FrT13j"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+    buildResult:
+      variable: "LIBLZMA_HAS_AUTO_DECODER"
+      cached: true
+      stdout: |
+        Change Dir: '/home/tony/git/shmup/CMakeFiles/CMakeScratch/TryCompile-FrT13j'
+        
+        Run Build Command(s): /usr/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_ad0a1/fast
+        /usr/bin/gmake  -f CMakeFiles/cmTC_ad0a1.dir/build.make CMakeFiles/cmTC_ad0a1.dir/build
+        gmake[1]: Entering directory '/home/tony/git/shmup/CMakeFiles/CMakeScratch/TryCompile-FrT13j'
+        Building C object CMakeFiles/cmTC_ad0a1.dir/CheckFunctionExists.c.o
+        /usr/bin/cc   -DCHECK_FUNCTION_EXISTS=lzma_auto_decoder -o CMakeFiles/cmTC_ad0a1.dir/CheckFunctionExists.c.o -c /home/tony/git/shmup/CMakeFiles/CMakeScratch/TryCompile-FrT13j/CheckFunctionExists.c
+        Linking C executable cmTC_ad0a1
+        /usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_ad0a1.dir/link.txt --verbose=1
+        /usr/bin/cc  -DCHECK_FUNCTION_EXISTS=lzma_auto_decoder CMakeFiles/cmTC_ad0a1.dir/CheckFunctionExists.c.o -o cmTC_ad0a1  /usr/lib64/liblzma.so 
+        gmake[1]: Leaving directory '/home/tony/git/shmup/CMakeFiles/CMakeScratch/TryCompile-FrT13j'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CheckLibraryExists.cmake:69 (try_compile)"
+      - "/usr/share/cmake/Modules/FindLibLZMA.cmake:98 (CHECK_LIBRARY_EXISTS)"
+      - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/usr/lib64/cmake/libxml2/libxml2-config.cmake:88 (find_dependency)"
+      - "CMakeLists.txt:6 (find_package)"
+    checks:
+      - "Looking for lzma_easy_encoder in /usr/lib64/liblzma.so"
+    directories:
+      source: "/home/tony/git/shmup/CMakeFiles/CMakeScratch/TryCompile-3KESH3"
+      binary: "/home/tony/git/shmup/CMakeFiles/CMakeScratch/TryCompile-3KESH3"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+    buildResult:
+      variable: "LIBLZMA_HAS_EASY_ENCODER"
+      cached: true
+      stdout: |
+        Change Dir: '/home/tony/git/shmup/CMakeFiles/CMakeScratch/TryCompile-3KESH3'
+        
+        Run Build Command(s): /usr/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_183be/fast
+        /usr/bin/gmake  -f CMakeFiles/cmTC_183be.dir/build.make CMakeFiles/cmTC_183be.dir/build
+        gmake[1]: Entering directory '/home/tony/git/shmup/CMakeFiles/CMakeScratch/TryCompile-3KESH3'
+        Building C object CMakeFiles/cmTC_183be.dir/CheckFunctionExists.c.o
+        /usr/bin/cc   -DCHECK_FUNCTION_EXISTS=lzma_easy_encoder -o CMakeFiles/cmTC_183be.dir/CheckFunctionExists.c.o -c /home/tony/git/shmup/CMakeFiles/CMakeScratch/TryCompile-3KESH3/CheckFunctionExists.c
+        Linking C executable cmTC_183be
+        /usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_183be.dir/link.txt --verbose=1
+        /usr/bin/cc  -DCHECK_FUNCTION_EXISTS=lzma_easy_encoder CMakeFiles/cmTC_183be.dir/CheckFunctionExists.c.o -o cmTC_183be  /usr/lib64/liblzma.so 
+        gmake[1]: Leaving directory '/home/tony/git/shmup/CMakeFiles/CMakeScratch/TryCompile-3KESH3'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/usr/share/cmake/Modules/CheckLibraryExists.cmake:69 (try_compile)"
+      - "/usr/share/cmake/Modules/FindLibLZMA.cmake:99 (CHECK_LIBRARY_EXISTS)"
+      - "/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake:76 (find_package)"
+      - "/usr/lib64/cmake/libxml2/libxml2-config.cmake:88 (find_dependency)"
+      - "CMakeLists.txt:6 (find_package)"
+    checks:
+      - "Looking for lzma_lzma_preset in /usr/lib64/liblzma.so"
+    directories:
+      source: "/home/tony/git/shmup/CMakeFiles/CMakeScratch/TryCompile-k8B6Dm"
+      binary: "/home/tony/git/shmup/CMakeFiles/CMakeScratch/TryCompile-k8B6Dm"
+    cmakeVariables:
+      CMAKE_C_FLAGS: ""
+      CMAKE_C_FLAGS_DEBUG: "-g"
+      CMAKE_EXE_LINKER_FLAGS: ""
+    buildResult:
+      variable: "LIBLZMA_HAS_LZMA_PRESET"
+      cached: true
+      stdout: |
+        Change Dir: '/home/tony/git/shmup/CMakeFiles/CMakeScratch/TryCompile-k8B6Dm'
+        
+        Run Build Command(s): /usr/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_ea0f0/fast
+        /usr/bin/gmake  -f CMakeFiles/cmTC_ea0f0.dir/build.make CMakeFiles/cmTC_ea0f0.dir/build
+        gmake[1]: Entering directory '/home/tony/git/shmup/CMakeFiles/CMakeScratch/TryCompile-k8B6Dm'
+        Building C object CMakeFiles/cmTC_ea0f0.dir/CheckFunctionExists.c.o
+        /usr/bin/cc   -DCHECK_FUNCTION_EXISTS=lzma_lzma_preset -o CMakeFiles/cmTC_ea0f0.dir/CheckFunctionExists.c.o -c /home/tony/git/shmup/CMakeFiles/CMakeScratch/TryCompile-k8B6Dm/CheckFunctionExists.c
+        Linking C executable cmTC_ea0f0
+        /usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_ea0f0.dir/link.txt --verbose=1
+        /usr/bin/cc  -DCHECK_FUNCTION_EXISTS=lzma_lzma_preset CMakeFiles/cmTC_ea0f0.dir/CheckFunctionExists.c.o -o cmTC_ea0f0  /usr/lib64/liblzma.so 
+        gmake[1]: Leaving directory '/home/tony/git/shmup/CMakeFiles/CMakeScratch/TryCompile-k8B6Dm'
+        
+      exitCode: 0
+...

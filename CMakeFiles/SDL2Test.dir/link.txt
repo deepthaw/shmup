@@ -1,1 +1,1 @@
-/usr/bin/c++ CMakeFiles/SDL2Test.dir/Main.cpp.o -o SDL2Test  /usr/lib64/libSDL2main.a /usr/lib64/libSDL2-2.0.so.0.3000.3 -lSDL2_image 
+/usr/bin/cc CMakeFiles/SDL2Test.dir/main.c.o -o SDL2Test  /usr/lib64/libSDL2main.a /usr/lib64/libSDL2-2.0.so.0.3000.3 -lSDL2_image 

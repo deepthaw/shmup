@@ -1,3 +1,3 @@
-/home/tony/git/shmup/CMakeFiles/SDL2Test.dir
+/home/tony/git/shmup/CMakeFiles/shmup.dir
 /home/tony/git/shmup/CMakeFiles/edit_cache.dir
 /home/tony/git/shmup/CMakeFiles/rebuild_cache.dir
