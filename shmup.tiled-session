@@ -7,10 +7,10 @@
     "fileStates": {
         "map1.tmx": {
             "scale": 1.3055902777777777,
-            "selectedLayer": 0,
+            "selectedLayer": 1,
             "viewCenter": {
-                "x": 720.3638201111672,
-                "y": 120.25212095422995
+                "x": 625.7705912076807,
+                "y": 118.72024680194676
             }
         },
         "shmup.tsx": {
@@ -21,7 +21,7 @@
         "sprites.tsx": {
             "dynamicWrapping": true,
             "scaleInDock": 1,
-            "scaleInEditor": 1
+            "scaleInEditor": 11
         },
         "tiles.tsx": {
             "scaleInDock": 1,
@@ -35,7 +35,7 @@
         "tiles.tsx"
     ],
     "project": "shmup.tiled-project",
-    "property.type": "file",
+    "property.type": "string",
     "recentFiles": [
         "tiles.tsx",
         "sprites.tsx",

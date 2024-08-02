@@ -12,5 +12,5 @@ typedef struct Sprite {
 } Sprite;
 extern SDL_Renderer *gRenderer;
 
-void processSprites(xmlNode *rootElement, GHashTable *tileSet);
-GHashTable *loadSprites(char* fileName);
+//void processSprites(xmlNode *rootElement, GHashTable *tileSet);
+//GHashTable *loadSprites(char* fileName);
