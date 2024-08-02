@@ -1,3 +1,0 @@
-/home/tony/git/shmup/build/CMakeFiles/shmup.dir
-/home/tony/git/shmup/build/CMakeFiles/edit_cache.dir
-/home/tony/git/shmup/build/CMakeFiles/rebuild_cache.dir
