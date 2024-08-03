@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<tileset version="1.10" tiledversion="1.11.0" name="PLAYER" tilewidth="30" tileheight="17" tilecount="5" columns="0" fillmode="preserve-aspect-fit">
+<tileset version="1.10" tiledversion="1.11.0" name="P_VIPER" tilewidth="30" tileheight="17" tilecount="5" columns="0" fillmode="preserve-aspect-fit">
  <grid orientation="orthogonal" width="1" height="1"/>
  <tile id="11" type="VICVIPER">
   <properties>

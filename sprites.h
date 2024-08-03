@@ -2,6 +2,8 @@
 #include <SDL.h>
 #include <SDL_image.h>
 
+extern SDL_Renderer *gRenderer;
+
 typedef struct spriteTex {
   SDL_Texture *tex;
   SDL_Rect rect;
@@ -20,10 +22,11 @@ typedef struct spritelist {
   struct spritelist *next;
 } spritelist;
 
-extern SDL_Renderer *gRenderer;
 
 enum spriteState {
   SPNEUTRAL,
+  SPNEUTRAL1,
+  SPNEUTRAL2,
   SPFORWARD,
   SPREVERSE,
   SPTILTUP,
@@ -34,3 +37,7 @@ enum spriteState {
 };
 
 extern const char *stateTable[NUMSTATES];
+
+void setSpriteState(Sprite *, int);
+
+

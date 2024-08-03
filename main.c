@@ -28,13 +28,17 @@ bool initializeGame(gameData *game);
 bool initializeBuffers();
 renderList *initializeRenderList();
 void togglePause();
-tmx_resource_manager *resources;
-void setSpriteState(Sprite *, int);
+// tmx_resource_manager *resources;
+spritelist *initializeSprites();
+Sprite *createSprite(char *name);
+void addSprite(spritelist *sprites, Sprite *s);
+bool allocateMemory();
 
-Sprite player;
 tmx_map *map;
 gameData game;
 renderList *buffers;
+spritelist *sprites;
+Sprite *player;
 
 SDL_Renderer *gRenderer = NULL;
 
@@ -128,7 +132,7 @@ bool loadMedia() {
 
   bool success = true;
 
-  map = tmx_load("map1.tmx");
+  map = tmx_load("MAP1.TMX");
   if (map == NULL) {
     tmx_perror("Cannot load map");
     return 1;
@@ -141,7 +145,7 @@ void processInput() {
   const Uint8 *keys = SDL_GetKeyboardState(NULL);
 
   if (keys[SDL_SCANCODE_UP]) {
-    player.rect.y--;
+    player->rect.y--;
     player_holdup++;
   } else {
     player_holdup -= 6;
@@ -149,7 +153,7 @@ void processInput() {
       player_holdup = 0;
   }
   if (keys[SDL_SCANCODE_DOWN]) {
-    player.rect.y++;
+    player->rect.y++;
     player_holddown++;
   } else {
     player_holddown -= 6;
@@ -157,11 +161,11 @@ void processInput() {
       player_holddown = 0;
   };
   if (keys[SDL_SCANCODE_LEFT]) {
-    player.rect.x--;
+    player->rect.x--;
     player_holdleft++;
   }
   if (keys[SDL_SCANCODE_RIGHT]) {
-    player.rect.x++;
+    player->rect.x++;
     player_holdright++;
   }
   if (keys[SDL_SCANCODE_R]) {
@@ -179,7 +183,45 @@ bool initializeView(SDL_Rect *view) {
   return true;
 }
 
+bool allocateMemory() {
+  bool success = true;
+  sprites = initializeSprites();
+  return success;
+}
+
+void checkSpawns(int cell_x);
+
+void spawnEnemyAt(int32_t GID, int cell_x, int cell_y);
+
+void checkSpawns(int cell_x) {
+  tmx_layer *layer = tmx_find_layer_by_name(map, "enemylayer");
+  for (int cell_y = 0; cell_y != map->height; cell_y++) {
+    int32_t cell = layer->content.gids[cell_y * map->width + cell_x];
+    printf("x: %d y:%d cell:%d\n",cell_x,cell_y,cell);
+    int32_t GID = cell & TMX_FLIP_BITS_REMOVAL;
+    if (GID) {
+      printf("ENEMY SPAWNED AT %d %d\n", cell_x, cell_y);
+      spawnEnemyAt(GID, cell_x, cell_y);
+    }
+  }
+}
+
+void spawnEnemyAt(int32_t GID, int cell_x, int cell_y) {
+  
+  char *enemy_type = map->tiles[GID]->type;
+  Sprite *enemy = createSprite(enemy_type);
+  int x = cell_x * TILE_X + (cell_x * TILE_X % SCREEN_WIDTH);
+  int y = cell_y * TILE_Y;
+  enemy->rect.x = x;
+  enemy->rect.y = y;
+  addSprite(sprites, enemy);
+}
+
 void update() {
+
+  if (game.x % TILE_X == 0) {
+    checkSpawns(game.x / TILE_X);
+  }
 
   if (!PAUSED) {
     if (game.x / TILE_X + SCREEN_WIDTH / TILE_X >= map->width) {
@@ -243,19 +285,22 @@ void initializeBackGround() {
   printf("beginning initializeBackGround\n");
   renderList *buffer = buffers;
   while (buffer) {
-    buffer->screen[0] =
-        draw_layer(map, buffer->layer, 0, 0, SCREEN_WIDTH / TILE_X,
-                   SCREEN_HEIGHT / TILE_Y);
-    buffer->screen[1] =
-        draw_layer(map, buffer->layer, screen_width_tiles, 0,
-                   SCREEN_WIDTH / TILE_X, SCREEN_HEIGHT / TILE_Y);
-    r.x = r.y = 0;
-    r.h = SCREEN_HEIGHT;
-    r.w = SCREEN_WIDTH;
-    SDL_SetRenderTarget(gRenderer, buffer->buffer);
-    SDL_RenderCopy(gRenderer, buffer->screen[0], NULL, &r);
-    r.x = SCREEN_WIDTH;
-    SDL_RenderCopy(gRenderer, buffer->screen[1], NULL, &r);
+    if (strcmp(buffer->layer->name, "enemylayer") != 0) {
+      printf("layer: %s\n", buffer->layer->name);
+      buffer->screen[0] =
+          draw_layer(map, buffer->layer, 0, 0, SCREEN_WIDTH / TILE_X,
+                     SCREEN_HEIGHT / TILE_Y);
+      buffer->screen[1] =
+          draw_layer(map, buffer->layer, screen_width_tiles, 0,
+                     SCREEN_WIDTH / TILE_X, SCREEN_HEIGHT / TILE_Y);
+      r.x = r.y = 0;
+      r.h = SCREEN_HEIGHT;
+      r.w = SCREEN_WIDTH;
+      SDL_SetRenderTarget(gRenderer, buffer->buffer);
+      SDL_RenderCopy(gRenderer, buffer->screen[0], NULL, &r);
+      r.x = SCREEN_WIDTH;
+      SDL_RenderCopy(gRenderer, buffer->screen[1], NULL, &r);
+    }
     printf("next: %d\n", buffer->next);
     buffer = buffer->next;
   }
@@ -263,17 +308,22 @@ void initializeBackGround() {
   printf("ending initializebackground\n");
 }
 
-bool initializeSprites() {
+spritelist *initializeSprites() {
+  sprites = malloc(sizeof(spritelist));
+  sprites->sprite = malloc(sizeof(Sprite));
+  sprites->next = NULL;
+  return sprites;
+}
 
-  bool success = true;
-  player.frames = calloc(SPFULLDN, sizeof(SDL_Texture *));
-  tmx_tileset_list *tileset_list = tmx_find_tileset_by_name(map, "PLAYER");
-  tmx_tileset *tileset = tileset_list->tileset;
-  tmx_tile *tiles = tileset->tiles;
+Sprite *createSprite(char *name) {
+  Sprite *s = malloc(sizeof(Sprite));
+  s->frames = calloc(NUMSTATES, sizeof(SDL_Texture *));
+  tmx_tileset *tileset = tmx_find_tileset_by_name(map, name)->tileset;
   int tilecount = tileset->tilecount;
+  tmx_tile *tiles = tileset->tiles;
 
   for (int i = 0; i != NUMSTATES; i++) {
-    player.frames[i] = calloc(1, sizeof(spriteTex));
+    s->frames[i] = calloc(1, sizeof(spriteTex));
   }
 
   for (int i = 0; i != tilecount; i++) {
@@ -281,42 +331,40 @@ bool initializeSprites() {
     tmx_image *image = tiles[i].image;
     char *source = image->source;
     for (int j = 0; j != NUMSTATES; j++) {
+      printf("state: %s", prop.value.string);
       if (strcmp(prop.value.string, stateTable[j]) == 0) {
-        spriteTex *f = player.frames[j];
-        f->tex = IMG_LoadTexture(gRenderer, source);
-        f->rect.h = tiles[i].height;
-        f->rect.w = tiles[i].width;
+        printf("source: %s\n", source);
+        s->frames[j]->tex = IMG_LoadTexture(gRenderer, source);
+        s->frames[j]->rect.h = tiles[i].height;
+        s->frames[j]->rect.w = tiles[i].width;
+      } else {
+        printf(" not found.\n");
       }
     }
   }
+  setSpriteState(s, SPNEUTRAL);
 
-  setSpriteState(&player, SPNEUTRAL);
-  return success;
+  return s;
 }
 
-void setSpriteState(Sprite *sprite, int state) {
-  if (sprite->frames[state] != NULL) {
-    sprite->tex = sprite->frames[state]->tex;
-    sprite->rect.h = sprite->frames[state]->rect.h;
-    sprite->rect.w = sprite->frames[state]->rect.w;
+void addSprite(spritelist *sprites, Sprite *s) {
+  spritelist *node = sprites;
+  while (node->next) {
+    node = node->next;
   }
+  node->next = malloc(sizeof(spritelist));
+  node = node->next;
+  node->sprite = s;
+  node->next = NULL;
 }
 
 void renderSprites() {
-
-  if (player_holddown > 30) {
-    setSpriteState(&player, SPFULLDN);
-  } else if (player_holddown > 15) {
-    setSpriteState(&player, SPTILTDN);
-  } else if (player_holdup > 30) {
-    setSpriteState(&player, SPFULLUP);
-  } else if (player_holdup > 15) {
-    setSpriteState(&player, SPTILTUP);
-  } else {
-    setSpriteState(&player, SPNEUTRAL);
+  printf("rendering sprites\n");
+  spritelist *list = sprites;
+  while (list) {
+    SDL_RenderCopy(gRenderer, list->sprite->tex, NULL, &list->sprite->rect);
+    list = list->next;
   }
-
-  SDL_RenderCopy(gRenderer, player.tex, NULL, &player.rect);
 }
 
 void render() {
@@ -367,10 +415,16 @@ int main(int argc, char *args[]) {
     return 1;
   }
   initializeBackGround();
+  printf("initializing view\n");
   initializeView(&view);
-  initializeSprites();
-  player.rect.x = 0;
-  player.rect.y = 120;
+  printf("allocating memory.\n");
+  allocateMemory();
+  printf("creating player.\n");
+  player = createSprite("P_VIPER");
+  printf("adding player.\n");
+  addSprite(sprites, player);
+  player->rect.x = 0;
+  player->rect.y = 120;
   printf("done loading\n");
   while (!quit) {
     while (SDL_PollEvent(&e) != 0) {

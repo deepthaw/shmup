@@ -11,6 +11,7 @@
 #define TILE_Y 16
 #define SCROLL_SPEED 1
 #define SCROLL_STEP SCREEN_WIDTH 
+#define SCROLL_STEP_TILES SCROLL_STEP / TILE_X
 
 typedef struct gameData {
   int x, y;
