@@ -1,5 +1,4 @@
 #include "main.h"
-#include "glib.h"
 #include "sprites.h"
 #include "tmx.h"
 #include "tmx_render.h"
@@ -9,14 +8,10 @@
 #include <SDL_render.h>
 #include <SDL_timer.h>
 #include <SDL_video.h>
-#include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 
 SDL_Window *gWindow = NULL;
-
-SDL_Texture *bgScreens[BG_LAYERS][2];
-SDL_Texture *bgLayer[BG_LAYERS];
 
 SDL_Rect view;
 
@@ -32,6 +27,9 @@ bool initializeView(SDL_Rect *view);
 bool initializeGame(gameData *game);
 bool initializeBuffers();
 renderList *initializeRenderList();
+void togglePause();
+tmx_resource_manager *resources;
+void setSpriteState(Sprite *, int);
 
 Sprite player;
 tmx_map *map;
@@ -49,6 +47,7 @@ int screen_width_tiles = SCREEN_WIDTH / TILE_X;
 
 int player_holdup, player_holddown, player_holdright, player_holdleft = 0;
 bool SCROLL_STOP = false;
+bool PAUSED = false;
 
 renderList *initializeRenderList() {
   renderList *buff = malloc(sizeof(renderList));
@@ -57,16 +56,16 @@ renderList *initializeRenderList() {
   while (layer) {
     buff->layer = layer;
     buff->screen[0] = SDL_CreateTexture(gRenderer, SDL_PIXELFORMAT_RGBA32,
-                                     SDL_TEXTUREACCESS_TARGET, SCREEN_WIDTH,
-                                     SCREEN_HEIGHT);
+                                        SDL_TEXTUREACCESS_TARGET, SCREEN_WIDTH,
+                                        SCREEN_HEIGHT);
 
     buff->screen[1] = SDL_CreateTexture(gRenderer, SDL_PIXELFORMAT_RGBA32,
-                                     SDL_TEXTUREACCESS_TARGET, SCREEN_WIDTH,
-                                     SCREEN_HEIGHT);
+                                        SDL_TEXTUREACCESS_TARGET, SCREEN_WIDTH,
+                                        SCREEN_HEIGHT);
 
     buff->buffer = SDL_CreateTexture(gRenderer, SDL_PIXELFORMAT_RGBA32,
-                                  SDL_TEXTUREACCESS_TARGET, SCREEN_WIDTH * 2,
-                                  SCREEN_HEIGHT * 2);
+                                     SDL_TEXTUREACCESS_TARGET, SCREEN_WIDTH * 2,
+                                     SCREEN_HEIGHT * 2);
 
     SDL_SetTextureBlendMode(buff->screen[0], SDL_BLENDMODE_BLEND);
     SDL_SetTextureBlendMode(buff->screen[1], SDL_BLENDMODE_BLEND);
@@ -82,6 +81,7 @@ renderList *initializeRenderList() {
   }
   return head;
 }
+void togglePause() { PAUSED = !PAUSED; }
 
 bool initializeGraphics() {
   bool success = true;
@@ -141,7 +141,7 @@ void processInput() {
   const Uint8 *keys = SDL_GetKeyboardState(NULL);
 
   if (keys[SDL_SCANCODE_UP]) {
-    player.y--;
+    player.rect.y--;
     player_holdup++;
   } else {
     player_holdup -= 6;
@@ -149,7 +149,7 @@ void processInput() {
       player_holdup = 0;
   }
   if (keys[SDL_SCANCODE_DOWN]) {
-    player.y++;
+    player.rect.y++;
     player_holddown++;
   } else {
     player_holddown -= 6;
@@ -157,17 +157,19 @@ void processInput() {
       player_holddown = 0;
   };
   if (keys[SDL_SCANCODE_LEFT]) {
-    player.x--;
+    player.rect.x--;
     player_holdleft++;
   }
   if (keys[SDL_SCANCODE_RIGHT]) {
-    player.x++;
+    player.rect.x++;
     player_holdright++;
   }
   if (keys[SDL_SCANCODE_R]) {
     resetView();
   }
-  printf("playerx: %d\n", player.x);
+  if (keys[SDL_SCANCODE_P]) {
+    togglePause();
+  }
 }
 
 bool initializeView(SDL_Rect *view) {
@@ -179,57 +181,28 @@ bool initializeView(SDL_Rect *view) {
 
 void update() {
 
-  if (game.x / TILE_X + SCREEN_WIDTH / TILE_X >= map->width) {
-    SCROLL_STOP = true;
-  } else {
-    SCROLL_STOP = false;
-  }
+  if (!PAUSED) {
+    if (game.x / TILE_X + SCREEN_WIDTH / TILE_X >= map->width) {
+      SCROLL_STOP = true;
+    } else {
+      SCROLL_STOP = false;
+    }
 
-  if (!SCROLL_STOP) {
-    game.x += SCROLL_SPEED;
-    view.x += SCROLL_SPEED;
-    game.y = 0;
-    view.y = 0;
-  }
-  player.rect.x = player.x;
-  player.rect.y = player.y;
+    if (!SCROLL_STOP) {
+      game.x += SCROLL_SPEED;
+      view.x += SCROLL_SPEED;
+      game.y = 0;
+      view.y = 0;
+    }
 
-  if (view.x >= SCROLL_STEP) {
-    printf("scrolling at view.x %d\n", view.x);
-    scrollScreen(map, game.x, game.y, view.x, view.y, SCROLL_STEP / TILE_X,
-                 SCREEN_HEIGHT / TILE_Y);
-    view.x = view.x - SCROLL_STEP;
+    if (view.x >= SCROLL_STEP) {
+      printf("scrolling at view.x %d\n", view.x);
+      scrollScreen(map, game.x, game.y, view.x, view.y, SCROLL_STEP / TILE_X,
+                   SCREEN_HEIGHT / TILE_Y);
+      view.x = view.x - SCROLL_STEP;
+    }
   }
   return;
-}
-
-void resetView() { view.x = 0; }
-
-void initializeBackGround() {
-
-  struct SDL_Rect r;
-  r.h = TILE_Y;
-  r.w = TILE_X;
-
-  printf("beginning initializeBackGround\n");
-  renderList *buffer = buffers;
-  while (buffer) {
-    buffer->screen[0] = draw_layer(map, buffer->layer, 0, 0, SCREEN_WIDTH / TILE_X,
-                                 SCREEN_HEIGHT / TILE_Y);
-    buffer->screen[1] = draw_layer(map, buffer->layer, screen_width_tiles, 0,
-                                 SCREEN_WIDTH / TILE_X, SCREEN_HEIGHT / TILE_Y);
-    r.x = r.y = 0;
-    r.h = SCREEN_HEIGHT;
-    r.w = SCREEN_WIDTH;
-    SDL_SetRenderTarget(gRenderer, buffer->buffer);
-    SDL_RenderCopy(gRenderer, buffer->screen[0], NULL, &r);
-    r.x = SCREEN_WIDTH;
-    SDL_RenderCopy(gRenderer, buffer->screen[1], NULL, &r);
-    printf("next: %d\n",buffer->next);
-    buffer = buffer->next;
-  }
-  SDL_SetRenderTarget(gRenderer, NULL);
-  printf("ending initializebackground\n");
 }
 
 void scrollScreen(tmx_map *map, int x, int y, int x_offsetpx, int y_offsetpx,
@@ -243,7 +216,8 @@ void scrollScreen(tmx_map *map, int x, int y, int x_offsetpx, int y_offsetpx,
   renderList *buffer = buffers;
   while (buffer) {
     buffer->screen[0] = buffer->screen[1];
-    buffer->screen[1] = draw_layer(map, buffer->layer, x / TILE_X, y / TILE_Y, x_size, y_size);
+    buffer->screen[1] =
+        draw_layer(map, buffer->layer, x / TILE_X, y / TILE_Y, x_size, y_size);
     printf("swapped\n");
     r.x = r.y = 0;
     r.h = y_size * TILE_Y;
@@ -258,14 +232,97 @@ void scrollScreen(tmx_map *map, int x, int y, int x_offsetpx, int y_offsetpx,
   SDL_SetRenderTarget(gRenderer, NULL);
 }
 
+void resetView() { view.x = 0; }
+
+void initializeBackGround() {
+
+  struct SDL_Rect r;
+  r.h = TILE_Y;
+  r.w = TILE_X;
+
+  printf("beginning initializeBackGround\n");
+  renderList *buffer = buffers;
+  while (buffer) {
+    buffer->screen[0] =
+        draw_layer(map, buffer->layer, 0, 0, SCREEN_WIDTH / TILE_X,
+                   SCREEN_HEIGHT / TILE_Y);
+    buffer->screen[1] =
+        draw_layer(map, buffer->layer, screen_width_tiles, 0,
+                   SCREEN_WIDTH / TILE_X, SCREEN_HEIGHT / TILE_Y);
+    r.x = r.y = 0;
+    r.h = SCREEN_HEIGHT;
+    r.w = SCREEN_WIDTH;
+    SDL_SetRenderTarget(gRenderer, buffer->buffer);
+    SDL_RenderCopy(gRenderer, buffer->screen[0], NULL, &r);
+    r.x = SCREEN_WIDTH;
+    SDL_RenderCopy(gRenderer, buffer->screen[1], NULL, &r);
+    printf("next: %d\n", buffer->next);
+    buffer = buffer->next;
+  }
+  SDL_SetRenderTarget(gRenderer, NULL);
+  printf("ending initializebackground\n");
+}
+
+bool initializeSprites() {
+
+  bool success = true;
+  player.frames = calloc(SPFULLDN, sizeof(SDL_Texture *));
+  tmx_tileset_list *tileset_list = tmx_find_tileset_by_name(map, "PLAYER");
+  tmx_tileset *tileset = tileset_list->tileset;
+  tmx_tile *tiles = tileset->tiles;
+  int tilecount = tileset->tilecount;
+
+  for (int i = 0; i != NUMSTATES; i++) {
+    player.frames[i] = calloc(1, sizeof(spriteTex));
+  }
+
+  for (int i = 0; i != tilecount; i++) {
+    tmx_property prop = *tmx_get_property(tiles[i].properties, "state");
+    tmx_image *image = tiles[i].image;
+    char *source = image->source;
+    for (int j = 0; j != NUMSTATES; j++) {
+      if (strcmp(prop.value.string, stateTable[j]) == 0) {
+        spriteTex *f = player.frames[j];
+        f->tex = IMG_LoadTexture(gRenderer, source);
+        f->rect.h = tiles[i].height;
+        f->rect.w = tiles[i].width;
+      }
+    }
+  }
+
+  setSpriteState(&player, SPNEUTRAL);
+  return success;
+}
+
+void setSpriteState(Sprite *sprite, int state) {
+  if (sprite->frames[state] != NULL) {
+    sprite->tex = sprite->frames[state]->tex;
+    sprite->rect.h = sprite->frames[state]->rect.h;
+    sprite->rect.w = sprite->frames[state]->rect.w;
+  }
+}
+
 void renderSprites() {
+
+  if (player_holddown > 30) {
+    setSpriteState(&player, SPFULLDN);
+  } else if (player_holddown > 15) {
+    setSpriteState(&player, SPTILTDN);
+  } else if (player_holdup > 30) {
+    setSpriteState(&player, SPFULLUP);
+  } else if (player_holdup > 15) {
+    setSpriteState(&player, SPTILTUP);
+  } else {
+    setSpriteState(&player, SPNEUTRAL);
+  }
+
   SDL_RenderCopy(gRenderer, player.tex, NULL, &player.rect);
 }
 
 void render() {
 
   SDL_RenderClear(gRenderer);
- renderList *buffer = buffers;
+  renderList *buffer = buffers;
   while (buffer) {
     SDL_Rect r = view;
     r.x = view.x * buffer->layer->parallaxx;
@@ -311,17 +368,9 @@ int main(int argc, char *args[]) {
   }
   initializeBackGround();
   initializeView(&view);
-
-  printf("loading player\n");
-  player.tex = IMG_LoadTexture(gRenderer, "images/sprite000.png");
-  printf("loaded texture\n");
-  player.x = 0;
-  printf("player x %d\n", player.x);
-  player.y = 120;
-  player.rect.x = player.x;
-  player.rect.y = player.y;
-  player.rect.w = 30;
-  player.rect.h = 11;
+  initializeSprites();
+  player.rect.x = 0;
+  player.rect.y = 120;
   printf("done loading\n");
   while (!quit) {
     while (SDL_PollEvent(&e) != 0) {

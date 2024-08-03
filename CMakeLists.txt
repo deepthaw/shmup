@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.28.2)
 
 project(shmup C)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(PkgConfig REQUIRED)
 pkg_search_module(GLIB REQUIRED glib-2.0)
 find_package(tmx REQUIRED)

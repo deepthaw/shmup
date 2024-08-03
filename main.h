@@ -4,16 +4,13 @@
 #define SCREEN_WIDTH 320
 #define SCREEN_HEIGHT 240
 #define SCALE 3
-#define BG_LAYERS 2
 #define SCREEN_FPS 60
 #define SCREEN_TICKS_PER_FRAME 1000 / SCREEN_FPS
 #define NUM_BG_TILES 3
 #define TILE_X 16
 #define TILE_Y 16
 #define SCROLL_SPEED 1
-#define NUM_SPRITE_TEX 5
-#define MAX_SPRITES 4096
-#define SCROLL_STEP SCREEN_WIDTH
+#define SCROLL_STEP SCREEN_WIDTH 
 
 typedef struct gameData {
   int x, y;

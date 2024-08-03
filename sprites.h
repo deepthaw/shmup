@@ -1,16 +1,36 @@
-#include <libxml/xmlreader.h>
-#include <libxml/parser.h>
-#include <libxml/tree.h>
 #include <glib.h>
 #include <SDL.h>
 #include <SDL_image.h>
 
+typedef struct spriteTex {
+  SDL_Texture *tex;
+  SDL_Rect rect;
+} spriteTex;
+
 typedef struct Sprite {
   SDL_Texture *tex;
-  int x, y;
+  spriteTex **frames;
+  int posx, posy;
+  SDL_Rect hitbox;
   SDL_Rect rect;
 } Sprite;
+
+typedef struct spritelist {
+  struct Sprite *sprite;
+  struct spritelist *next;
+} spritelist;
+
 extern SDL_Renderer *gRenderer;
 
-//void processSprites(xmlNode *rootElement, GHashTable *tileSet);
-//GHashTable *loadSprites(char* fileName);
+enum spriteState {
+  SPNEUTRAL,
+  SPFORWARD,
+  SPREVERSE,
+  SPTILTUP,
+  SPFULLUP,
+  SPTILTDN,
+  SPFULLDN,
+  NUMSTATES
+};
+
+extern const char *stateTable[NUMSTATES];
