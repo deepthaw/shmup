@@ -3,7 +3,7 @@
  <grid orientation="orthogonal" width="1" height="1"/>
  <tile id="0" type="E_ROLLER">
   <properties>
-   <property name="state" propertytype="frames" value="SPNEUTRAL"/>
+   <property name="state" propertytype="frames" value="SPNEUTRAL0"/>
   </properties>
   <image source="images/enemy000.png" width="16" height="16"/>
  </tile>

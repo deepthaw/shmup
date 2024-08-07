@@ -1,15 +1,24 @@
 #include "main.h"
+#include "fire.h"
 #include "sprites.h"
 #include "tmx.h"
 #include "tmx_render.h"
 #include <SDL.h>
 #include <SDL_events.h>
 #include <SDL_image.h>
+#include <SDL_pixels.h>
 #include <SDL_render.h>
+#include <SDL_surface.h>
 #include <SDL_timer.h>
 #include <SDL_video.h>
+#include <mikmod.h>
+#include <pthread.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <unistd.h>
 
 SDL_Window *gWindow = NULL;
 
@@ -28,19 +37,46 @@ bool initializeGame(gameData *game);
 bool initializeBuffers();
 renderList *initializeRenderList();
 void togglePause();
-// tmx_resource_manager *resources;
-spritelist *initializeSprites();
-Sprite *createSprite(char *name);
-void addSprite(spritelist *sprites, Sprite *s);
-bool allocateMemory();
+bool initSound();
+Sprite *createSprite(char *name, int type);
+void addSprite(spritelist **sprites, Sprite *s);
+void *playMusic(void *mod);
+void checkSpawns(int cell_x);
+void spawnEnemyAt(int32_t GID, int cell_x, int cell_y);
+
 
 tmx_map *map;
 gameData game;
 renderList *buffers;
-spritelist *sprites;
+spritelist *sprites = NULL;
 Sprite *player;
-
+MODULE *module;
 SDL_Renderer *gRenderer = NULL;
+framebuffer *fire;
+
+bool initSound() {
+  bool success = true;
+  MikMod_RegisterAllDrivers();
+  MikMod_RegisterAllLoaders();
+  md_mode |= DMODE_SOFT_MUSIC;
+  if (MikMod_Init("")) {
+    fprintf(stderr, "Could not initialize sound, reason %s\n",
+            MikMod_strerror(MikMod_errno));
+    success = false;
+  }
+  return success;
+}
+
+void *playMusic(void *mod) {
+  module = Player_Load(mod, 64, 0);
+  if (module) {
+    Player_Start(module);
+    while (Player_Active()) {
+      usleep(10000);
+      MikMod_Update();
+    }
+  }
+}
 
 void scrollScreen(tmx_map *map, int x, int y, int x_offsetpx, int y_offsetpx,
                   int x_size, int y_size);
@@ -51,7 +87,7 @@ int screen_width_tiles = SCREEN_WIDTH / TILE_X;
 
 int player_holdup, player_holddown, player_holdright, player_holdleft = 0;
 bool SCROLL_STOP = false;
-bool PAUSED = false;
+bool PAUSED = true;
 
 renderList *initializeRenderList() {
   renderList *buff = malloc(sizeof(renderList));
@@ -110,7 +146,7 @@ bool initializeGraphics() {
         success = false;
       } else {
         SDL_SetRenderDrawBlendMode(gRenderer, SDL_BLENDMODE_BLEND);
-        SDL_SetRenderDrawColor(gRenderer, 128, 128, 128, 255);
+        SDL_SetRenderDrawColor(gRenderer, 0, 0, 0, 255);
         int imgFlags = IMG_INIT_PNG;
         if (!(IMG_Init(imgFlags) & imgFlags)) {
           printf("SDL_image could not initialize! SDL_image Error: %s\n",
@@ -183,38 +219,24 @@ bool initializeView(SDL_Rect *view) {
   return true;
 }
 
-bool allocateMemory() {
-  bool success = true;
-  sprites = initializeSprites();
-  return success;
-}
-
-void checkSpawns(int cell_x);
-
-void spawnEnemyAt(int32_t GID, int cell_x, int cell_y);
-
 void checkSpawns(int cell_x) {
   tmx_layer *layer = tmx_find_layer_by_name(map, "enemylayer");
   for (int cell_y = 0; cell_y != map->height; cell_y++) {
     int32_t cell = layer->content.gids[cell_y * map->width + cell_x];
-    printf("x: %d y:%d cell:%d\n",cell_x,cell_y,cell);
     int32_t GID = cell & TMX_FLIP_BITS_REMOVAL;
     if (GID) {
-      printf("ENEMY SPAWNED AT %d %d\n", cell_x, cell_y);
       spawnEnemyAt(GID, cell_x, cell_y);
     }
   }
 }
 
 void spawnEnemyAt(int32_t GID, int cell_x, int cell_y) {
-  
-  char *enemy_type = map->tiles[GID]->type;
-  Sprite *enemy = createSprite(enemy_type);
+  Sprite *enemy = createSprite("E_ROLLER", ENEMY);
   int x = cell_x * TILE_X + (cell_x * TILE_X % SCREEN_WIDTH);
   int y = cell_y * TILE_Y;
   enemy->rect.x = x;
   enemy->rect.y = y;
-  addSprite(sprites, enemy);
+  addSprite(&sprites, enemy);
 }
 
 void update() {
@@ -238,7 +260,6 @@ void update() {
     }
 
     if (view.x >= SCROLL_STEP) {
-      printf("scrolling at view.x %d\n", view.x);
       scrollScreen(map, game.x, game.y, view.x, view.y, SCROLL_STEP / TILE_X,
                    SCREEN_HEIGHT / TILE_Y);
       view.x = view.x - SCROLL_STEP;
@@ -254,21 +275,21 @@ void scrollScreen(tmx_map *map, int x, int y, int x_offsetpx, int y_offsetpx,
   r.h = TILE_Y;
   r.w = TILE_X;
 
-  printf("swapping\n");
   renderList *buffer = buffers;
   while (buffer) {
-    buffer->screen[0] = buffer->screen[1];
-    buffer->screen[1] =
-        draw_layer(map, buffer->layer, x / TILE_X, y / TILE_Y, x_size, y_size);
-    printf("swapped\n");
-    r.x = r.y = 0;
-    r.h = y_size * TILE_Y;
-    r.w = x_size * TILE_X;
-    SDL_SetRenderTarget(gRenderer, buffer->buffer);
-    SDL_RenderCopy(gRenderer, buffer->screen[0], NULL, &r);
-    r.x = x_offsetpx;
-    r.y = y_offsetpx;
-    SDL_RenderCopy(gRenderer, buffer->screen[1], NULL, &r);
+    if (strcmp(buffer->layer->name, "enemylayer") != 0) {
+      buffer->screen[0] = buffer->screen[1];
+      buffer->screen[1] = draw_layer(map, buffer->layer, x / TILE_X, y / TILE_Y,
+                                     x_size, y_size);
+      r.x = r.y = 0;
+      r.h = y_size * TILE_Y;
+      r.w = x_size * TILE_X;
+      SDL_SetRenderTarget(gRenderer, buffer->buffer);
+      SDL_RenderCopy(gRenderer, buffer->screen[0], NULL, &r);
+      r.x = x_offsetpx;
+      r.y = y_offsetpx;
+      SDL_RenderCopy(gRenderer, buffer->screen[1], NULL, &r);
+    }
     buffer = buffer->next;
   }
   SDL_SetRenderTarget(gRenderer, NULL);
@@ -297,73 +318,110 @@ void initializeBackGround() {
       r.h = SCREEN_HEIGHT;
       r.w = SCREEN_WIDTH;
       SDL_SetRenderTarget(gRenderer, buffer->buffer);
+
       SDL_RenderCopy(gRenderer, buffer->screen[0], NULL, &r);
       r.x = SCREEN_WIDTH;
       SDL_RenderCopy(gRenderer, buffer->screen[1], NULL, &r);
     }
-    printf("next: %d\n", buffer->next);
     buffer = buffer->next;
   }
   SDL_SetRenderTarget(gRenderer, NULL);
   printf("ending initializebackground\n");
 }
 
-spritelist *initializeSprites() {
-  sprites = malloc(sizeof(spritelist));
-  sprites->sprite = malloc(sizeof(Sprite));
-  sprites->next = NULL;
-  return sprites;
-}
-
-Sprite *createSprite(char *name) {
-  Sprite *s = malloc(sizeof(Sprite));
-  s->frames = calloc(NUMSTATES, sizeof(SDL_Texture *));
+Sprite *createSprite(char *name, int type) {
+  printf("Trying to create %s\n", name);
+  Sprite *s = NULL;
+  s = malloc(sizeof(Sprite));
   tmx_tileset *tileset = tmx_find_tileset_by_name(map, name)->tileset;
   int tilecount = tileset->tilecount;
   tmx_tile *tiles = tileset->tiles;
-
+  s->animtex = malloc(NUMSTATES * sizeof(animateLoop *));
   for (int i = 0; i != NUMSTATES; i++) {
-    s->frames[i] = calloc(1, sizeof(spriteTex));
-  }
+    const char *currentstate = stateTable[i];
+    char *n = calloc(strlen(currentstate) + 1, sizeof(char));
+    s->animtex[i] = NULL;
+    strcpy(n, currentstate);
+    for (int j = 0; j != 10; j++) {
+      animateLoop *current;
+      n[strlen(currentstate)] = j + '0';
+      for (int k = 0; k != tilecount; k++) {
+        tmx_property prop = *tmx_get_property(tiles[k].properties, "state");
+        if (strcmp(prop.value.string, n) == 0) {
+          animateLoop *new = malloc(sizeof(animateLoop));
+          new->frame = malloc(sizeof(spriteTex));
+          new->frame->tex = IMG_LoadTexture(gRenderer, tiles[k].image->source);
+          new->frame->rect.h = tiles[k].height;
+          new->frame->rect.w = tiles[k].width;
+          new->tics = 5;
+          new->next = NULL;
 
-  for (int i = 0; i != tilecount; i++) {
-    tmx_property prop = *tmx_get_property(tiles[i].properties, "state");
-    tmx_image *image = tiles[i].image;
-    char *source = image->source;
-    for (int j = 0; j != NUMSTATES; j++) {
-      printf("state: %s", prop.value.string);
-      if (strcmp(prop.value.string, stateTable[j]) == 0) {
-        printf("source: %s\n", source);
-        s->frames[j]->tex = IMG_LoadTexture(gRenderer, source);
-        s->frames[j]->rect.h = tiles[i].height;
-        s->frames[j]->rect.w = tiles[i].width;
-      } else {
-        printf(" not found.\n");
+          if (s->animtex[i] == NULL) {
+            s->animtex[i] = new;
+          } else {
+            current = s->animtex[i];
+            while (current->next != NULL) {
+              current = current->next;
+            }
+            current->next = new;
+          }
+        }
       }
     }
+    if (s->animtex[i] != NULL) {
+      animateLoop *tmp = s->animtex[i];
+      while (tmp->next != NULL) {
+        tmp = tmp->next;
+      }
+      tmp->next = s->animtex[i];
+    }
   }
+  s->type = type;
   setSpriteState(s, SPNEUTRAL);
-
   return s;
 }
 
-void addSprite(spritelist *sprites, Sprite *s) {
-  spritelist *node = sprites;
-  while (node->next) {
-    node = node->next;
+void addSprite(spritelist **sprites, Sprite *s) {
+  spritelist *new = calloc(1, sizeof(spritelist));
+  if (new == NULL) {
+    printf("failed to allocate memory!\n");
+    exit(EXIT_FAILURE);
   }
-  node->next = malloc(sizeof(spritelist));
-  node = node->next;
-  node->sprite = s;
-  node->next = NULL;
+  new->sprite = s;
+  new->next = NULL;
+  if (*sprites == NULL) {
+    *sprites = new;
+  } else {
+    spritelist *node = *sprites;
+    while (node->next != NULL) {
+      node = node->next;
+    }
+    node->next = new;
+  }
+}
+
+void updateSprite(Sprite *s) {
+  int state = s->state;
+ 
+  if (s->elapsed++ > s->animtex[state]->tics) {
+  s->animtex[state] = s->animtex[state]->next;
+  s->tex = s->animtex[state]->frame->tex;
+  s->elapsed = 0;
+  }
 }
 
 void renderSprites() {
-  printf("rendering sprites\n");
-  spritelist *list = sprites;
-  while (list) {
-    SDL_RenderCopy(gRenderer, list->sprite->tex, NULL, &list->sprite->rect);
-    list = list->next;
+  spritelist *current = sprites;
+  int i = 0;
+  while (current != NULL) {
+    Sprite *s = current->sprite;
+    if (s->type == ENEMY) {
+      s->rect.x = s->rect.x - 2;
+    }
+    printf("rendering %u\n",i++);
+    SDL_RenderCopy(gRenderer, s->tex, NULL, &s->rect);
+    updateSprite(s);
+    current = current->next;
   }
 }
 
@@ -380,12 +438,15 @@ void render() {
   }
 
   renderSprites();
+  SDL_RenderCopy(gRenderer, texFromFire(fire), NULL, NULL);
   SDL_RenderSetScale(gRenderer, SCALE, SCALE);
   SDL_RenderPresent(gRenderer);
 }
 
 int main(int argc, char *args[]) {
 
+  // libmikmod music playback thread
+  pthread_t tid;
   // libtmx callbacks for drawing tiles
   tmx_img_load_func = SDL_tex_loader;
   tmx_img_free_func = (void (*)(void *))SDL_DestroyTexture;
@@ -393,6 +454,11 @@ int main(int argc, char *args[]) {
   SDL_Event e;
   bool quit = false;
   uint64_t nextTic;
+
+  if (!initSound()) {
+    printf("Failed to initialize sound!\n");
+    return 1;
+  }
 
   if (!initializeGraphics()) {
     printf("Failed to initialize!\n");
@@ -414,18 +480,21 @@ int main(int argc, char *args[]) {
     printf("Failed to initialize game state!\n");
     return 1;
   }
+  srand(time(NULL));
+  fire = initFireEffect(320, 120);
   initializeBackGround();
-  printf("initializing view\n");
   initializeView(&view);
-  printf("allocating memory.\n");
-  allocateMemory();
-  printf("creating player.\n");
-  player = createSprite("P_VIPER");
-  printf("adding player.\n");
-  addSprite(sprites, player);
+  player = createSprite("P_VIPER", PLAYER);
+  Sprite *badguy = createSprite("E_ROLLER", ENEMY);
+  addSprite(&sprites, player);
+  addSprite(&sprites, badguy);
+  badguy->rect.x = 160;
+  badguy->rect.y = 120;
   player->rect.x = 0;
   player->rect.y = 120;
   printf("done loading\n");
+  char *mod = "MUSIC/ELYSIUM.MOD";
+  pthread_create(&tid, NULL, playMusic, (void *)mod);
   while (!quit) {
     while (SDL_PollEvent(&e) != 0) {
       if (e.type == SDL_QUIT) {
