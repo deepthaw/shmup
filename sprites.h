@@ -1,8 +1,10 @@
 #include <glib.h>
 #include <SDL.h>
 #include <SDL_image.h>
+#include "tmx_render.h"
 
 extern SDL_Renderer *gRenderer;
+extern tmx_map *map; 
 
 typedef struct spriteTex {
   SDL_Texture *tex;
@@ -31,7 +33,6 @@ typedef struct spritelist {
   struct spritelist *next;
 } spritelist;
 
-
 enum spriteState {
   SPNEUTRAL,
   SPFORWARD,
@@ -51,5 +52,6 @@ enum spriteType {
 extern const char *stateTable[NUMSTATES];
 
 void setSpriteState(Sprite *, int);
-
-
+Sprite *createSprite(char *name, int type);
+void updateSprite(Sprite *s);
+void addSprite(spritelist **sprites, Sprite *s);

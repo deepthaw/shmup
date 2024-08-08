@@ -1,5 +1,6 @@
 #include "main.h"
 #include "fire.h"
+#include "sound.h"
 #include "sprites.h"
 #include "tmx.h"
 #include "tmx_render.h"
@@ -11,7 +12,6 @@
 #include <SDL_surface.h>
 #include <SDL_timer.h>
 #include <SDL_video.h>
-#include <mikmod.h>
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -37,46 +37,18 @@ bool initializeGame(gameData *game);
 bool initializeBuffers();
 renderList *initializeRenderList();
 void togglePause();
-bool initSound();
-Sprite *createSprite(char *name, int type);
+//Sprite *createSprite(char *name, int type);
 void addSprite(spritelist **sprites, Sprite *s);
-void *playMusic(void *mod);
 void checkSpawns(int cell_x);
 void spawnEnemyAt(int32_t GID, int cell_x, int cell_y);
-
 
 tmx_map *map;
 gameData game;
 renderList *buffers;
 spritelist *sprites = NULL;
 Sprite *player;
-MODULE *module;
 SDL_Renderer *gRenderer = NULL;
 framebuffer *fire;
-
-bool initSound() {
-  bool success = true;
-  MikMod_RegisterAllDrivers();
-  MikMod_RegisterAllLoaders();
-  md_mode |= DMODE_SOFT_MUSIC;
-  if (MikMod_Init("")) {
-    fprintf(stderr, "Could not initialize sound, reason %s\n",
-            MikMod_strerror(MikMod_errno));
-    success = false;
-  }
-  return success;
-}
-
-void *playMusic(void *mod) {
-  module = Player_Load(mod, 64, 0);
-  if (module) {
-    Player_Start(module);
-    while (Player_Active()) {
-      usleep(10000);
-      MikMod_Update();
-    }
-  }
-}
 
 void scrollScreen(tmx_map *map, int x, int y, int x_offsetpx, int y_offsetpx,
                   int x_size, int y_size);
@@ -329,96 +301,14 @@ void initializeBackGround() {
   printf("ending initializebackground\n");
 }
 
-Sprite *createSprite(char *name, int type) {
-  printf("Trying to create %s\n", name);
-  Sprite *s = NULL;
-  s = malloc(sizeof(Sprite));
-  tmx_tileset *tileset = tmx_find_tileset_by_name(map, name)->tileset;
-  int tilecount = tileset->tilecount;
-  tmx_tile *tiles = tileset->tiles;
-  s->animtex = malloc(NUMSTATES * sizeof(animateLoop *));
-  for (int i = 0; i != NUMSTATES; i++) {
-    const char *currentstate = stateTable[i];
-    char *n = calloc(strlen(currentstate) + 1, sizeof(char));
-    s->animtex[i] = NULL;
-    strcpy(n, currentstate);
-    for (int j = 0; j != 10; j++) {
-      animateLoop *current;
-      n[strlen(currentstate)] = j + '0';
-      for (int k = 0; k != tilecount; k++) {
-        tmx_property prop = *tmx_get_property(tiles[k].properties, "state");
-        if (strcmp(prop.value.string, n) == 0) {
-          animateLoop *new = malloc(sizeof(animateLoop));
-          new->frame = malloc(sizeof(spriteTex));
-          new->frame->tex = IMG_LoadTexture(gRenderer, tiles[k].image->source);
-          new->frame->rect.h = tiles[k].height;
-          new->frame->rect.w = tiles[k].width;
-          new->tics = 5;
-          new->next = NULL;
-
-          if (s->animtex[i] == NULL) {
-            s->animtex[i] = new;
-          } else {
-            current = s->animtex[i];
-            while (current->next != NULL) {
-              current = current->next;
-            }
-            current->next = new;
-          }
-        }
-      }
-    }
-    if (s->animtex[i] != NULL) {
-      animateLoop *tmp = s->animtex[i];
-      while (tmp->next != NULL) {
-        tmp = tmp->next;
-      }
-      tmp->next = s->animtex[i];
-    }
-  }
-  s->type = type;
-  setSpriteState(s, SPNEUTRAL);
-  return s;
-}
-
-void addSprite(spritelist **sprites, Sprite *s) {
-  spritelist *new = calloc(1, sizeof(spritelist));
-  if (new == NULL) {
-    printf("failed to allocate memory!\n");
-    exit(EXIT_FAILURE);
-  }
-  new->sprite = s;
-  new->next = NULL;
-  if (*sprites == NULL) {
-    *sprites = new;
-  } else {
-    spritelist *node = *sprites;
-    while (node->next != NULL) {
-      node = node->next;
-    }
-    node->next = new;
-  }
-}
-
-void updateSprite(Sprite *s) {
-  int state = s->state;
- 
-  if (s->elapsed++ > s->animtex[state]->tics) {
-  s->animtex[state] = s->animtex[state]->next;
-  s->tex = s->animtex[state]->frame->tex;
-  s->elapsed = 0;
-  }
-}
 
 void renderSprites() {
   spritelist *current = sprites;
-  int i = 0;
   while (current != NULL) {
     Sprite *s = current->sprite;
     if (s->type == ENEMY) {
       s->rect.x = s->rect.x - 2;
     }
-    printf("rendering %u\n",i++);
     SDL_RenderCopy(gRenderer, s->tex, NULL, &s->rect);
     updateSprite(s);
     current = current->next;
@@ -438,6 +328,7 @@ void render() {
   }
 
   renderSprites();
+  // move fire elsewhere
   SDL_RenderCopy(gRenderer, texFromFire(fire), NULL, NULL);
   SDL_RenderSetScale(gRenderer, SCALE, SCALE);
   SDL_RenderPresent(gRenderer);
