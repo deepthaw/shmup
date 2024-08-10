@@ -53,9 +53,5 @@ enum spriteNames {
 extern const char *frameTable[NUMFRAMES];
 extern const char *spriteNames[NUMSPRITENAMES];
 
-void setSpriteFrame(Sprite *, int);
-Sprite *createSprite(char *name, int type);
-void updateSprite(Sprite *s);
-void addSprite(spritelist **sprites, Sprite *s);
 Sprite **loadSpritesFromDisk(const char *spriteNames[], int count);
 
