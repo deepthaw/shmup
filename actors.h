@@ -1,9 +1,13 @@
+/* Actors are the actual entities that move around the screen
+ * they use sprites as their underlying graphical data
+ */
+
 #include "sprites.h"
 
 typedef struct Actor {
-  spriteTex *currentframe;
+  Frame *currentframe;
   SDL_Texture *currentTex;
-  frameList **frames;
+  Animation **animation;
   int elapsed; 
   SDL_Rect hitbox;
   SDL_Rect rect;

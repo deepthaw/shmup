@@ -3,9 +3,9 @@
 void setActorFrame(Actor *a, int frame) {
   a->frame = frame;
   a->elapsed = 0;
-  a->currentTex = a->frames[frame]->frame->tex;
-  a->rect.h = a->frames[frame]->frame->rect.h;
-  a->rect.w = a->frames[frame]->frame->rect.w;
+  a->currentTex = a->animation[frame]->frame->tex;
+  a->rect.h = a->animation[frame]->frame->rect.h;
+  a->rect.w = a->animation[frame]->frame->rect.w;
 }
 
 Actor *createActor(Sprite **spritedata, const char *name, int type, int state) {
@@ -31,7 +31,7 @@ Actor *createActor(Sprite **spritedata, const char *name, int type, int state) {
     }
 
     // Point to the original sprite data without allocating unnecessary memory
-    a->frames = source->frames;
+    a->animation = source->animation;
     a->rect = source->rect;
     a->hitbox = source->hitbox;
     a->type = type;
@@ -47,9 +47,9 @@ Actor *createActor(Sprite **spritedata, const char *name, int type, int state) {
 void updateActorFrame(Actor *a) {
   int frame = a->frame;
 
-  if (a->elapsed++ > a->frames[frame]->tics) {
-    a->frames[frame] = a->frames[frame]->next;
-    a->currentTex = a->frames[frame]->frame->tex;
+  if (a->elapsed++ > a->animation[frame]->tics) {
+    a->animation[frame] = a->animation[frame]->next;
+    a->currentTex = a->animation[frame]->frame->tex;
     a->elapsed = 0;
   }
 }

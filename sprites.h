@@ -1,3 +1,11 @@
+/* Sprites are the base graphic data that actors use
+ * when they are instantiated. A frame is an individual
+ * frame of animation, while a frameList is the set of
+ * frames that will be drawn. All frameLists are circular
+ * linked lists so that they animated in a loop indefinitely.
+ *
+*/
+
 #include <glib.h>
 #include <SDL.h>
 #include <SDL_image.h>
@@ -6,29 +14,24 @@
 extern SDL_Renderer *gRenderer;
 extern tmx_map *map; 
 
-typedef struct spriteTex {
+typedef struct Frame {
   SDL_Texture *tex;
   SDL_Rect rect;
-} spriteTex;
+} Frame;
 
-typedef struct frameList {
+typedef struct Animation {
   uint32_t tics;
-  spriteTex *frame;
-  struct frameList *next;
-} frameList;
+  Frame *frame;
+  struct Animation *next;
+} Animation;
 
 typedef struct Sprite {
-  frameList **frames;
+  Animation **animation;
   SDL_Rect hitbox;
   SDL_Rect rect;
 } Sprite;
 
-typedef struct spritelist {
-  struct Sprite *sprite;
-  struct spritelist *next;
-} spritelist;
-
-enum spriteFrame {
+enum Animations {
   SPNEUTRAL,
   SPFORWARD,
   SPREVERSE,

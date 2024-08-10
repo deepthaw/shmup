@@ -8,8 +8,8 @@ const char *frameTable[NUMFRAMES] = {"SPNEUTRAL", "SPFORWARD", "SPREVERSE",
 
 const char *spriteNames[NUMSPRITENAMES] = {"P_VIPER", "E_ROLLER"};
 
-spriteTex *loadSpriteFromDisk(const char *filename) {
-  spriteTex *t = malloc(sizeof(spriteTex));
+Frame *loadSpriteFromDisk(const char *filename) {
+  Frame *t = malloc(sizeof(Frame));
   t->tex = IMG_LoadTexture(gRenderer, filename);
   if (t->tex != NULL) {
     SDL_QueryTexture(t->tex, NULL, NULL, &t->rect.w, &t->rect.h);
@@ -19,12 +19,12 @@ spriteTex *loadSpriteFromDisk(const char *filename) {
   return NULL;
 }
 
-void makeFrameListLoop(frameList *frames) {
-  if (frames == NULL) {
+void makeAnimationLoop(Animation *animation) {
+  if (animation == NULL) {
     return; // Empty list, nothing to do
   }
-  frameList *head = frames;
-  frameList *node = frames;
+  Animation *head = animation;
+  Animation *node = animation;
 
   while (node->next != NULL) {
     node = node->next;
@@ -32,8 +32,8 @@ void makeFrameListLoop(frameList *frames) {
   node->next = head;
 }
 
-frameList **addFrame(frameList **frames, spriteTex *t) {
-  frameList *new = calloc(1, sizeof(frameList));
+Animation **addFrame(Animation **animation, Frame *t) {
+  Animation *new = calloc(1, sizeof(Animation));
   if (new == NULL) {
     printf("failed to allocate memory!\n");
     exit(EXIT_FAILURE);
@@ -41,16 +41,16 @@ frameList **addFrame(frameList **frames, spriteTex *t) {
   new->frame = t;
   new->tics = 5;
   new->next = NULL;
-  if (*frames == NULL) {
-    *frames = new;
+  if (*animation == NULL) {
+    *animation = new;
   } else {
-    frameList *node = *frames;
+    Animation *node = *animation;
     while (node->next != NULL) {
       node = node->next;
     }
     node->next = new;
   }
-  return frames;
+  return animation;
 }
 
 Sprite **loadSpritesFromDisk(const char *spriteNames[], int count) {
@@ -63,29 +63,29 @@ Sprite **loadSpritesFromDisk(const char *spriteNames[], int count) {
     spriteData[name] = calloc(1, sizeof(Sprite));
     Sprite *sname = spriteData[name];
 
-    // Allocate memory for the frames array in the Sprite
-    sname->frames = calloc(NUMFRAMES, sizeof(frameList *));
+    // Allocate memory for the animation array in the Sprite
+    sname->animation = calloc(NUMFRAMES, sizeof(Animation *));
 
     // Loop through each frame in the sprite
     for (int frame = 0; frame < NUMFRAMES; frame++) {
-      sname->frames[frame] = NULL; // Initialize the frame list pointer
+      sname->animation[frame] = NULL; // Initialize the frame list pointer
 
       // Loop through each texture (up to 10 per frame)
       for (int tex = 0; tex < 10; tex++) {
         char filename[256];
-        snprintf(filename, sizeof(filename), "./SPRITES/%s/%s%u.png",
+        snprintf(filename, sizeof(filename), "SPRITES/%s/%s%u.png",
                  spriteNames[name], frameTable[frame], tex);
 
-        spriteTex *t = loadSpriteFromDisk(filename);
+        Frame *t = loadSpriteFromDisk(filename);
 
         if (t != NULL) {
           printf("loaded %s from disk\n", filename);
-          sname->frames[frame] = *addFrame(&(sname->frames[frame]), t);
+          sname->animation[frame] = *addFrame(&(sname->animation[frame]), t);
         }
       }
 
       // Ensure the frame list is looped (a circular list)
-      makeFrameListLoop(sname->frames[frame]);
+      makeAnimationLoop(sname->animation[frame]);
     }
   }
 

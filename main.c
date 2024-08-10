@@ -49,8 +49,7 @@ int screen_width_tiles = SCREEN_WIDTH / TILE_X;
 
 int player_holdup, player_holddown, player_holdright, player_holdleft = 0;
 bool SCROLL_STOP = false;
-bool PAUSED = false;
-
+bool PAUSED = true;
 
 void togglePause() { PAUSED = !PAUSED; }
 
@@ -224,7 +223,6 @@ void initializeBackGround() {
   printf("ending initializebackground\n");
 }
 
-
 void renderActors() {
   actorlist *current = actors;
   while (current != NULL) {
@@ -237,6 +235,53 @@ void renderActors() {
     current = current->next;
   }
 }
+
+int init() {
+  srand(time(NULL));
+  
+  if (!initSound()) {
+    printf("Failed to initialize sound!\n");
+    return 1;
+  }
+
+  gRenderer = initializeGraphics();
+  if (!gRenderer) {
+    printf("Failed to initialize!\n");
+    return 1;
+  }
+
+  if (!loadMedia()) {
+    printf("Failed to load media!\n");
+    return 1;
+  }
+
+  spritedata = loadSpritesFromDisk(spriteNames, NUMSPRITENAMES);
+  if (spritedata == NULL) {
+    printf("Failed to load sprite data!\n");
+    return 1;
+  }
+
+  buffers = initializeRenderList(map);
+  if (buffers == NULL) {
+    printf("Failed to initialize graphic buffers!\n");
+    return 1;
+  }
+
+  if (!initializeGame(&game)) {
+    printf("Failed to initialize game state!\n");
+    return 1;
+  }
+
+  fire = initFireEffect(320, 120);
+  initializeBackGround();
+  initializeView(&view);
+  player = createActor(spritedata, "P_VIPER", PLAYER, 0);
+  addActor(&actors, player);
+  printf("Game initialization successful.");
+
+  return 0;
+}
+
 
 void render() {
 
@@ -269,40 +314,12 @@ int main(int argc, char *args[]) {
   bool quit = false;
   uint64_t nextTic;
 
-  if (!initSound()) {
-    printf("Failed to initialize sound!\n");
-    return 1;
+  int initState = init();
+  if (initState != 0)
+  {
+    return initState;
   }
 
-  gRenderer = initializeGraphics();
-  if (!gRenderer) {
-    printf("Failed to initialize!\n");
-    return 1;
-  }
-
-  if (!loadMedia()) {
-    printf("Failed to load media!\n");
-    return 1;
-  }
-
-  spritedata = loadSpritesFromDisk(spriteNames, NUMSPRITENAMES);
-  buffers = initializeRenderList(map);
-  if (buffers == NULL) {
-    printf("Failed to initialize graphic buffers!\n");
-    return 1;
-  }
-
-  if (!initializeGame(&game)) {
-    printf("Failed to initialize game state!\n");
-    return 1;
-  }
-  srand(time(NULL));
-  fire = initFireEffect(320, 120);
-  initializeBackGround();
-  initializeView(&view);
-  player = createActor(spritedata, "P_VIPER", PLAYER, 0);
-  addActor(&actors, player);
-  printf("done loading\n");
   char *mod = "MUSIC/ELYSIUM.MOD";
   pthread_create(&tid, NULL, playMusic, (void *)mod);
   while (!quit) {
