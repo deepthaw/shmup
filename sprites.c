@@ -1,101 +1,93 @@
 #include "sprites.h"
 #include <SDL_image.h>
+#include <SDL_render.h>
 
-const char *stateTable[NUMSTATES] = {
-  "SPNEUTRAL",
-  "SPFORWARD",
-  "SPREVERSE",
-  "SPTILTUP",
-  "SPFULLUP",
-  "SPTILTDN",
-  "SPFULLDN" };
+const char *frameTable[NUMFRAMES] = {"SPNEUTRAL", "SPFORWARD", "SPREVERSE",
+                                     "SPTILTUP",  "SPFULLUP",  "SPTILTDN",
+                                     "SPFULLDN"};
 
-Sprite *createSprite(char *name, int type) {
-  printf("Trying to create %s\n", name);
-  Sprite *s = NULL;
-  s = malloc(sizeof(Sprite));
-  tmx_tileset *tileset = tmx_find_tileset_by_name(map, name)->tileset;
-  int tilecount = tileset->tilecount;
-  tmx_tile *tiles = tileset->tiles;
-  s->animtex = malloc(NUMSTATES * sizeof(animateLoop *));
-  for (int i = 0; i != NUMSTATES; i++) {
-    const char *currentstate = stateTable[i];
-    char *n = calloc(strlen(currentstate) + 1, sizeof(char));
-    s->animtex[i] = NULL;
-    strcpy(n, currentstate);
-    for (int j = 0; j != 10; j++) {
-      animateLoop *current;
-      n[strlen(currentstate)] = j + '0';
-      for (int k = 0; k != tilecount; k++) {
-        tmx_property prop = *tmx_get_property(tiles[k].properties, "state");
-        if (strcmp(prop.value.string, n) == 0) {
-          animateLoop *new = malloc(sizeof(animateLoop));
-          new->frame = malloc(sizeof(spriteTex));
-          new->frame->tex = IMG_LoadTexture(gRenderer, tiles[k].image->source);
-          new->frame->rect.h = tiles[k].height;
-          new->frame->rect.w = tiles[k].width;
-          new->tics = 5;
-          new->next = NULL;
+const char *spriteNames[NUMSPRITENAMES] = {"P_VIPER", "E_ROLLER"};
 
-          if (s->animtex[i] == NULL) {
-            s->animtex[i] = new;
-          } else {
-            current = s->animtex[i];
-            while (current->next != NULL) {
-              current = current->next;
-            }
-            current->next = new;
-          }
-        }
-      }
-    }
-    if (s->animtex[i] != NULL) {
-      animateLoop *tmp = s->animtex[i];
-      while (tmp->next != NULL) {
-        tmp = tmp->next;
-      }
-      tmp->next = s->animtex[i];
-    }
+spriteTex *loadSpriteFromDisk(const char *filename) {
+  spriteTex *t = malloc(sizeof(spriteTex));
+  t->tex = IMG_LoadTexture(gRenderer, filename);
+  if (t->tex != NULL) {
+    SDL_QueryTexture(t->tex, NULL, NULL, &t->rect.w, &t->rect.h);
+    t->rect.x = t->rect.y = 0;
+    return t;
   }
-  s->type = type;
-  setSpriteState(s, SPNEUTRAL);
-  return s;
+  return NULL;
 }
 
-void addSprite(spritelist **sprites, Sprite *s) {
-  spritelist *new = calloc(1, sizeof(spritelist));
+void makeFrameListLoop(frameList *frames) {
+  if (frames == NULL) {
+    return; // Empty list, nothing to do
+  }
+  frameList *head = frames;
+  frameList *node = frames;
+
+  while (node->next != NULL) {
+    node = node->next;
+  }
+  node->next = head;
+}
+
+frameList **addFrame(frameList **frames, spriteTex *t) {
+  frameList *new = calloc(1, sizeof(frameList));
   if (new == NULL) {
     printf("failed to allocate memory!\n");
     exit(EXIT_FAILURE);
   }
-  new->sprite = s;
+  new->frame = t;
+  new->tics = 5;
   new->next = NULL;
-  if (*sprites == NULL) {
-    *sprites = new;
+  if (*frames == NULL) {
+    *frames = new;
   } else {
-    spritelist *node = *sprites;
+    frameList *node = *frames;
     while (node->next != NULL) {
       node = node->next;
     }
     node->next = new;
   }
+  return frames;
 }
 
-void updateSprite(Sprite *s) {
-  int state = s->state;
- 
-  if (s->elapsed++ > s->animtex[state]->tics) {
-  s->animtex[state] = s->animtex[state]->next;
-  s->tex = s->animtex[state]->frame->tex;
-  s->elapsed = 0;
+Sprite **loadSpritesFromDisk(const char *spriteNames[], int count) {
+  // Allocate memory for the array of sprite pointers
+  Sprite **spriteData = calloc(count, sizeof(Sprite *));
+
+  // Loop through each sprite name
+  for (int name = 0; name < count; name++) {
+    // Allocate memory for each individual Sprite
+    spriteData[name] = calloc(1, sizeof(Sprite));
+    Sprite *sname = spriteData[name];
+
+    // Allocate memory for the frames array in the Sprite
+    sname->frames = calloc(NUMFRAMES, sizeof(frameList *));
+
+    // Loop through each frame in the sprite
+    for (int frame = 0; frame < NUMFRAMES; frame++) {
+      sname->frames[frame] = NULL; // Initialize the frame list pointer
+
+      // Loop through each texture (up to 10 per frame)
+      for (int tex = 0; tex < 10; tex++) {
+        char filename[256];
+        snprintf(filename, sizeof(filename), "./SPRITES/%s/%s%u.png",
+                 spriteNames[name], frameTable[frame], tex);
+
+        spriteTex *t = loadSpriteFromDisk(filename);
+
+        if (t != NULL) {
+          printf("loaded %s from disk\n", filename);
+          sname->frames[frame] = *addFrame(&(sname->frames[frame]), t);
+        }
+      }
+
+      // Ensure the frame list is looped (a circular list)
+      makeFrameListLoop(sname->frames[frame]);
+    }
   }
-}
 
-void setSpriteState(Sprite *sprite, int state) {
-    sprite->state = state;
-    sprite->elapsed = 0;
-    sprite->tex = sprite->animtex[state]->frame->tex;
-    sprite->rect.h = sprite->animtex[state]->frame->rect.h;
-    sprite->rect.w = sprite->animtex[state]->frame->rect.w;
-    printf("sprite at %d state set to %d %d\n", sprite, state, sprite->state);
+  return spriteData;
 }

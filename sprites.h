@@ -11,21 +11,16 @@ typedef struct spriteTex {
   SDL_Rect rect;
 } spriteTex;
 
-typedef struct animateLoop {
+typedef struct frameList {
   uint32_t tics;
   spriteTex *frame;
-  struct animateLoop *next;
-} animateLoop;
+  struct frameList *next;
+} frameList;
 
 typedef struct Sprite {
-  SDL_Texture *tex;
-  animateLoop **animtex;
-  int elapsed; 
-  int posx, posy;
+  frameList **frames;
   SDL_Rect hitbox;
   SDL_Rect rect;
-  int type;
-  int state;
 } Sprite;
 
 typedef struct spritelist {
@@ -33,7 +28,7 @@ typedef struct spritelist {
   struct spritelist *next;
 } spritelist;
 
-enum spriteState {
+enum spriteFrame {
   SPNEUTRAL,
   SPFORWARD,
   SPREVERSE,
@@ -41,7 +36,7 @@ enum spriteState {
   SPFULLUP,
   SPTILTDN,
   SPFULLDN,
-  NUMSTATES
+  NUMFRAMES
 };
 
 enum spriteType {
@@ -49,9 +44,18 @@ enum spriteType {
   ENEMY
 };
 
-extern const char *stateTable[NUMSTATES];
+enum spriteNames {
+  P_VIPER,
+  E_ROLLER,
+  NUMSPRITENAMES
+};
 
-void setSpriteState(Sprite *, int);
+extern const char *frameTable[NUMFRAMES];
+extern const char *spriteNames[NUMSPRITENAMES];
+
+void setSpriteFrame(Sprite *, int);
 Sprite *createSprite(char *name, int type);
 void updateSprite(Sprite *s);
 void addSprite(spritelist **sprites, Sprite *s);
+Sprite **loadSpritesFromDisk(const char *spriteNames[], int count);
+

@@ -1,6 +1,10 @@
 #include "tmx.h"
 #include <SDL.h>
 
+#define TILE_X 16
+#define TILE_Y 16
+
+extern SDL_Renderer *gRenderer;
 void* SDL_tex_loader(const char *path);
 void draw_sprite(void *image, unsigned int dx, unsigned int dy, float opacity, unsigned int flags); 
 void draw_tile(void *image, unsigned int sx, unsigned int sy, unsigned int sw, unsigned int sh,

@@ -1,17 +1,11 @@
 #include "main.h"
+#include "graphics.h"
 #include "fire.h"
 #include "sound.h"
-#include "sprites.h"
+#include "actors.h"
 #include "tmx.h"
 #include "tmx_render.h"
 #include <SDL.h>
-#include <SDL_events.h>
-#include <SDL_image.h>
-#include <SDL_pixels.h>
-#include <SDL_render.h>
-#include <SDL_surface.h>
-#include <SDL_timer.h>
-#include <SDL_video.h>
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -21,10 +15,8 @@
 #include <unistd.h>
 
 SDL_Window *gWindow = NULL;
-
 SDL_Rect view;
 
-bool initializeGraphics();
 bool loadMedia();
 void processInput();
 void update();
@@ -35,20 +27,18 @@ void resetView();
 bool initializeView(SDL_Rect *view);
 bool initializeGame(gameData *game);
 bool initializeBuffers();
-renderList *initializeRenderList();
 void togglePause();
-//Sprite *createSprite(char *name, int type);
-void addSprite(spritelist **sprites, Sprite *s);
 void checkSpawns(int cell_x);
 void spawnEnemyAt(int32_t GID, int cell_x, int cell_y);
 
 tmx_map *map;
 gameData game;
 renderList *buffers;
-spritelist *sprites = NULL;
-Sprite *player;
+actorlist *actors = NULL;
+Actor *player;
 SDL_Renderer *gRenderer = NULL;
 framebuffer *fire;
+Sprite **spritedata;
 
 void scrollScreen(tmx_map *map, int x, int y, int x_offsetpx, int y_offsetpx,
                   int x_size, int y_size);
@@ -59,77 +49,10 @@ int screen_width_tiles = SCREEN_WIDTH / TILE_X;
 
 int player_holdup, player_holddown, player_holdright, player_holdleft = 0;
 bool SCROLL_STOP = false;
-bool PAUSED = true;
+bool PAUSED = false;
 
-renderList *initializeRenderList() {
-  renderList *buff = malloc(sizeof(renderList));
-  renderList *head = buff;
-  tmx_layer *layer = map->ly_head;
-  while (layer) {
-    buff->layer = layer;
-    buff->screen[0] = SDL_CreateTexture(gRenderer, SDL_PIXELFORMAT_RGBA32,
-                                        SDL_TEXTUREACCESS_TARGET, SCREEN_WIDTH,
-                                        SCREEN_HEIGHT);
 
-    buff->screen[1] = SDL_CreateTexture(gRenderer, SDL_PIXELFORMAT_RGBA32,
-                                        SDL_TEXTUREACCESS_TARGET, SCREEN_WIDTH,
-                                        SCREEN_HEIGHT);
-
-    buff->buffer = SDL_CreateTexture(gRenderer, SDL_PIXELFORMAT_RGBA32,
-                                     SDL_TEXTUREACCESS_TARGET, SCREEN_WIDTH * 2,
-                                     SCREEN_HEIGHT * 2);
-
-    SDL_SetTextureBlendMode(buff->screen[0], SDL_BLENDMODE_BLEND);
-    SDL_SetTextureBlendMode(buff->screen[1], SDL_BLENDMODE_BLEND);
-    SDL_SetTextureBlendMode(buff->buffer, SDL_BLENDMODE_BLEND);
-    if (layer->next) {
-      buff->next = malloc(sizeof(renderList));
-      buff = buff->next;
-    } else {
-      buff->next = NULL;
-      buff = buff->next;
-    }
-    layer = layer->next;
-  }
-  return head;
-}
 void togglePause() { PAUSED = !PAUSED; }
-
-bool initializeGraphics() {
-  bool success = true;
-  if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-    printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
-    success = false;
-  } else {
-    printf("creating window.\n");
-    gWindow = SDL_CreateWindow("shmup", SDL_WINDOWPOS_UNDEFINED,
-                               SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH * SCALE,
-                               SCREEN_HEIGHT * SCALE, SDL_WINDOW_SHOWN);
-    if (gWindow == NULL) {
-      printf("Window could not be created! SDL_Error: %s\n", SDL_GetError());
-      success = false;
-    } else {
-      printf("creating renderer\n");
-      gRenderer = SDL_CreateRenderer(
-          gWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE);
-      if (gRenderer == NULL) {
-        printf("Renderer could not be created! SDL Error: %s\n",
-               SDL_GetError());
-        success = false;
-      } else {
-        SDL_SetRenderDrawBlendMode(gRenderer, SDL_BLENDMODE_BLEND);
-        SDL_SetRenderDrawColor(gRenderer, 0, 0, 0, 255);
-        int imgFlags = IMG_INIT_PNG;
-        if (!(IMG_Init(imgFlags) & imgFlags)) {
-          printf("SDL_image could not initialize! SDL_image Error: %s\n",
-                 SDL_GetError());
-          success = false;
-        }
-      }
-    }
-  }
-  return success;
-}
 
 bool initializeGame(gameData *game) {
   game->x = game->y = 0;
@@ -203,12 +126,12 @@ void checkSpawns(int cell_x) {
 }
 
 void spawnEnemyAt(int32_t GID, int cell_x, int cell_y) {
-  Sprite *enemy = createSprite("E_ROLLER", ENEMY);
+  Actor *enemy = createActor(spritedata, "E_ROLLER", ENEMY, 0);
   int x = cell_x * TILE_X + (cell_x * TILE_X % SCREEN_WIDTH);
   int y = cell_y * TILE_Y;
   enemy->rect.x = x;
   enemy->rect.y = y;
-  addSprite(&sprites, enemy);
+  addActor(&actors, enemy);
 }
 
 void update() {
@@ -302,15 +225,15 @@ void initializeBackGround() {
 }
 
 
-void renderSprites() {
-  spritelist *current = sprites;
+void renderActors() {
+  actorlist *current = actors;
   while (current != NULL) {
-    Sprite *s = current->sprite;
-    if (s->type == ENEMY) {
-      s->rect.x = s->rect.x - 2;
+    Actor *a = current->actor;
+    if (a->type == ENEMY) {
+      a->rect.x = a->rect.x - 2;
     }
-    SDL_RenderCopy(gRenderer, s->tex, NULL, &s->rect);
-    updateSprite(s);
+    SDL_RenderCopy(gRenderer, a->currentTex, NULL, &a->rect);
+    updateActorFrame(a);
     current = current->next;
   }
 }
@@ -327,7 +250,7 @@ void render() {
     buffer = buffer->next;
   }
 
-  renderSprites();
+  renderActors();
   // move fire elsewhere
   SDL_RenderCopy(gRenderer, texFromFire(fire), NULL, NULL);
   SDL_RenderSetScale(gRenderer, SCALE, SCALE);
@@ -351,7 +274,8 @@ int main(int argc, char *args[]) {
     return 1;
   }
 
-  if (!initializeGraphics()) {
+  gRenderer = initializeGraphics();
+  if (!gRenderer) {
     printf("Failed to initialize!\n");
     return 1;
   }
@@ -361,7 +285,8 @@ int main(int argc, char *args[]) {
     return 1;
   }
 
-  buffers = initializeRenderList();
+  spritedata = loadSpritesFromDisk(spriteNames, NUMSPRITENAMES);
+  buffers = initializeRenderList(map);
   if (buffers == NULL) {
     printf("Failed to initialize graphic buffers!\n");
     return 1;
@@ -375,14 +300,8 @@ int main(int argc, char *args[]) {
   fire = initFireEffect(320, 120);
   initializeBackGround();
   initializeView(&view);
-  player = createSprite("P_VIPER", PLAYER);
-  Sprite *badguy = createSprite("E_ROLLER", ENEMY);
-  addSprite(&sprites, player);
-  addSprite(&sprites, badguy);
-  badguy->rect.x = 160;
-  badguy->rect.y = 120;
-  player->rect.x = 0;
-  player->rect.y = 120;
+  player = createActor(spritedata, "P_VIPER", PLAYER, 0);
+  addActor(&actors, player);
   printf("done loading\n");
   char *mod = "MUSIC/ELYSIUM.MOD";
   pthread_create(&tid, NULL, playMusic, (void *)mod);

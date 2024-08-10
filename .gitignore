@@ -41,5 +41,5 @@
 build/
 bin/
 
-#vm in progress
-vm.*
+#debug/core dumps
+core.*
