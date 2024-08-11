@@ -39,6 +39,7 @@ enum Animations {
   SPFULLUP,
   SPTILTDN,
   SPFULLDN,
+  HITBOX,
   NUMFRAMES
 };
 
@@ -57,4 +58,3 @@ extern const char *frameTable[NUMFRAMES];
 extern const char *spriteNames[NUMSPRITENAMES];
 
 Sprite **loadSpritesFromDisk(const char *spriteNames[], int count);
-

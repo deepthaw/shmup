@@ -4,7 +4,7 @@
 
 const char *frameTable[NUMFRAMES] = {"SPNEUTRAL", "SPFORWARD", "SPREVERSE",
                                      "SPTILTUP",  "SPFULLUP",  "SPTILTDN",
-                                     "SPFULLDN"};
+                                     "SPFULLDN", "HITBOX"};
 
 const char *spriteNames[NUMSPRITENAMES] = {"P_VIPER", "E_ROLLER"};
 
@@ -61,14 +61,13 @@ Sprite **loadSpritesFromDisk(const char *spriteNames[], int count) {
   for (int name = 0; name < count; name++) {
     // Allocate memory for each individual Sprite
     spriteData[name] = calloc(1, sizeof(Sprite));
-    Sprite *sname = spriteData[name];
 
     // Allocate memory for the animation array in the Sprite
-    sname->animation = calloc(NUMFRAMES, sizeof(Animation *));
+    spriteData[name]->animation = calloc(NUMFRAMES, sizeof(Animation *));
 
     // Loop through each frame in the sprite
     for (int frame = 0; frame < NUMFRAMES; frame++) {
-      sname->animation[frame] = NULL; // Initialize the frame list pointer
+      spriteData[name]->animation[frame] = NULL; // Initialize the frame list pointer
 
       // Loop through each texture (up to 10 per frame)
       for (int tex = 0; tex < 10; tex++) {
@@ -80,13 +79,21 @@ Sprite **loadSpritesFromDisk(const char *spriteNames[], int count) {
 
         if (t != NULL) {
           printf("loaded %s from disk\n", filename);
-          sname->animation[frame] = *addFrame(&(sname->animation[frame]), t);
+          spriteData[name]->animation[frame] = *addFrame(&(spriteData[name]->animation[frame]), t);
         }
       }
 
       // Ensure the frame list is looped (a circular list)
-      makeAnimationLoop(sname->animation[frame]);
+      makeAnimationLoop(spriteData[name]->animation[frame]);
     }
+    spriteData[name]->rect = spriteData[name]->animation[SPNEUTRAL]->frame->rect;
+
+    SDL_Texture *ht = spriteData[name]->animation[HITBOX]->frame->tex;
+    SDL_QueryTexture(ht, NULL, NULL, &spriteData[name]->hitbox.w, &spriteData[name]->hitbox.h);
+    spriteData[name]->hitbox.x = (spriteData[name]->rect.w - spriteData[name]->hitbox.w) >> 1;
+    spriteData[name]->hitbox.y = (spriteData[name]->rect.h - spriteData[name]->hitbox.h) >> 1;
+    printf("%u %u %u %u\n", spriteData[name]->hitbox.x, spriteData[name]->hitbox.y, spriteData[name]->hitbox.w, spriteData[name]->hitbox.h);
+
   }
 
   return spriteData;

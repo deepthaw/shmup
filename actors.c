@@ -3,9 +3,16 @@
 void setActorFrame(Actor *a, int frame) {
   a->frame = frame;
   a->elapsed = 0;
-  a->currentTex = a->animation[frame]->frame->tex;
-  a->rect.h = a->animation[frame]->frame->rect.h;
-  a->rect.w = a->animation[frame]->frame->rect.w;
+  a->currentframe = a->sprite->animation[frame];
+}
+
+void updateActorFrame(Actor *a) {
+  int frame = a->frame;
+
+  if (a->elapsed++ > a->sprite->animation[frame]->tics) {
+    a->currentframe = a->currentframe->next; 
+    a->elapsed = 0;
+  }
 }
 
 Actor *createActor(Sprite **spritedata, const char *name, int type, int state) {
@@ -31,9 +38,7 @@ Actor *createActor(Sprite **spritedata, const char *name, int type, int state) {
     }
 
     // Point to the original sprite data without allocating unnecessary memory
-    a->animation = source->animation;
-    a->rect = source->rect;
-    a->hitbox = source->hitbox;
+    a->sprite = source;
     a->type = type;
     a->state = state;  // Use the passed state instead of hardcoding 0
     a->elapsed = 0;
@@ -42,16 +47,6 @@ Actor *createActor(Sprite **spritedata, const char *name, int type, int state) {
     setActorFrame(a, SPNEUTRAL);
     
     return a;
-}
-
-void updateActorFrame(Actor *a) {
-  int frame = a->frame;
-
-  if (a->elapsed++ > a->animation[frame]->tics) {
-    a->animation[frame] = a->animation[frame]->next;
-    a->currentTex = a->animation[frame]->frame->tex;
-    a->elapsed = 0;
-  }
 }
 
 void addActor(actorlist **actors, Actor *a) {
@@ -71,4 +66,9 @@ void addActor(actorlist **actors, Actor *a) {
     }
     node->next = new;
   }
+}
+
+void setActorXY(Actor *a, int x, int y) {
+  a->x = x;
+  a->y = y;
 }

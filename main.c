@@ -1,8 +1,9 @@
-#include "main.h"
-#include "graphics.h"
-#include "fire.h"
-#include "sound.h"
+#include "game.h"
 #include "actors.h"
+#include "fire.h"
+#include "camera.h"
+#include "graphics.h"
+#include "sound.h"
 #include "tmx.h"
 #include "tmx_render.h"
 #include <SDL.h>
@@ -40,8 +41,6 @@ SDL_Renderer *gRenderer = NULL;
 framebuffer *fire;
 Sprite **spritedata;
 
-void scrollScreen(tmx_map *map, int x, int y, int x_offsetpx, int y_offsetpx,
-                  int x_size, int y_size);
 void initializeBackground();
 
 int screen_height_tiles = SCREEN_HEIGHT / TILE_Y;
@@ -49,7 +48,7 @@ int screen_width_tiles = SCREEN_WIDTH / TILE_X;
 
 int player_holdup, player_holddown, player_holdright, player_holdleft = 0;
 bool SCROLL_STOP = false;
-bool PAUSED = true;
+bool PAUSED = false;
 
 void togglePause() { PAUSED = !PAUSED; }
 
@@ -75,7 +74,7 @@ void processInput() {
   const Uint8 *keys = SDL_GetKeyboardState(NULL);
 
   if (keys[SDL_SCANCODE_UP]) {
-    player->rect.y--;
+    player->y--;
     player_holdup++;
   } else {
     player_holdup -= 6;
@@ -83,7 +82,7 @@ void processInput() {
       player_holdup = 0;
   }
   if (keys[SDL_SCANCODE_DOWN]) {
-    player->rect.y++;
+    player->y++;
     player_holddown++;
   } else {
     player_holddown -= 6;
@@ -91,11 +90,11 @@ void processInput() {
       player_holddown = 0;
   };
   if (keys[SDL_SCANCODE_LEFT]) {
-    player->rect.x--;
+    player->x--;
     player_holdleft++;
   }
   if (keys[SDL_SCANCODE_RIGHT]) {
-    player->rect.x++;
+    player->x++;
     player_holdright++;
   }
   if (keys[SDL_SCANCODE_R]) {
@@ -128,19 +127,43 @@ void spawnEnemyAt(int32_t GID, int cell_x, int cell_y) {
   Actor *enemy = createActor(spritedata, "E_ROLLER", ENEMY, 0);
   int x = cell_x * TILE_X + (cell_x * TILE_X % SCREEN_WIDTH);
   int y = cell_y * TILE_Y;
-  enemy->rect.x = x;
-  enemy->rect.y = y;
+  setActorXY(enemy, x, y);
   addActor(&actors, enemy);
+}
+
+SDL_Rect getHitBox(Actor *a) {
+  SDL_Rect r;
+  r.x = a->x + a->sprite->hitbox.x;
+  r.y = a->y + a->sprite->hitbox.y;
+  r.w = a->sprite->hitbox.w;
+  r.h = a->sprite->hitbox.h;
+  return r;
+}
+
+bool checkCollision(Actor *a, Actor *b) {
+  SDL_Rect r1 = getHitBox(a);
+  SDL_Rect r2 = getHitBox(b);
+
+  return (r1.x < r2.x + r2.w && r1.x + r1.w > r2.x && r1.y < r2.y + r2.h &&
+          r1.y + r1.h > r2.y);
+}
+
+bool checkHitTiles(Actor *a) {
+  int x = (getHitBox(a).x + game.x) / TILE_X;
+  int y = (getHitBox(a).y + game.y) / TILE_Y;
+  printf("Player is in tile %u, %u\n", x, y);
+  tmx_layer *layer = tmx_find_layer_by_name(map, "bg1");
+  return layer->content.gids[y * map->width + x]; 
 }
 
 void update() {
 
-  if (game.x % TILE_X == 0) {
-    checkSpawns(game.x / TILE_X);
-  }
-
   if (!PAUSED) {
-    if (game.x / TILE_X + SCREEN_WIDTH / TILE_X >= map->width) {
+    if (game.x % TILE_X == 0) {
+      checkSpawns(game.x / TILE_X);
+    }
+
+    if ((game.x + SCREEN_WIDTH) / TILE_X >= map->width) {
       SCROLL_STOP = true;
     } else {
       SCROLL_STOP = false;
@@ -154,39 +177,27 @@ void update() {
     }
 
     if (view.x >= SCROLL_STEP) {
-      scrollScreen(map, game.x, game.y, view.x, view.y, SCROLL_STEP / TILE_X,
+      scrollScreen(map, game.x + SCROLL_STEP, game.y, view.x, view.y, SCROLL_STEP / TILE_X,
                    SCREEN_HEIGHT / TILE_Y);
       view.x = view.x - SCROLL_STEP;
     }
-  }
-  return;
-}
 
-void scrollScreen(tmx_map *map, int x, int y, int x_offsetpx, int y_offsetpx,
-                  int x_size, int y_size) {
-
-  struct SDL_Rect r;
-  r.h = TILE_Y;
-  r.w = TILE_X;
-
-  renderList *buffer = buffers;
-  while (buffer) {
-    if (strcmp(buffer->layer->name, "enemylayer") != 0) {
-      buffer->screen[0] = buffer->screen[1];
-      buffer->screen[1] = draw_layer(map, buffer->layer, x / TILE_X, y / TILE_Y,
-                                     x_size, y_size);
-      r.x = r.y = 0;
-      r.h = y_size * TILE_Y;
-      r.w = x_size * TILE_X;
-      SDL_SetRenderTarget(gRenderer, buffer->buffer);
-      SDL_RenderCopy(gRenderer, buffer->screen[0], NULL, &r);
-      r.x = x_offsetpx;
-      r.y = y_offsetpx;
-      SDL_RenderCopy(gRenderer, buffer->screen[1], NULL, &r);
+    actorlist *current = actors;
+    while (current) {
+      if (current->actor->type != PLAYER) {
+        if (checkCollision(player, current->actor)) {
+          printf("Collision!\n");
+        }
+      }
+      current = current->next;
     }
-    buffer = buffer->next;
+
+    if (checkHitTiles(player)) {
+      printf("Hit a tile!\n");
+    }
+
+    return;
   }
-  SDL_SetRenderTarget(gRenderer, NULL);
 }
 
 void resetView() { view.x = 0; }
@@ -228,9 +239,10 @@ void renderActors() {
   while (current != NULL) {
     Actor *a = current->actor;
     if (a->type == ENEMY) {
-      a->rect.x = a->rect.x - 2;
+      a->x = a->x - 2;
     }
-    SDL_RenderCopy(gRenderer, a->currentTex, NULL, &a->rect);
+    SDL_Rect r = {a->x, a->y, a->sprite->rect.w, a->sprite->rect.h};
+    SDL_RenderCopy(gRenderer, a->currentframe->frame->tex, NULL, &r);
     updateActorFrame(a);
     current = current->next;
   }
@@ -238,7 +250,7 @@ void renderActors() {
 
 int init() {
   srand(time(NULL));
-  
+
   if (!initSound()) {
     printf("Failed to initialize sound!\n");
     return 1;
@@ -276,12 +288,12 @@ int init() {
   initializeBackGround();
   initializeView(&view);
   player = createActor(spritedata, "P_VIPER", PLAYER, 0);
+  setActorXY(player, 0, 120);
   addActor(&actors, player);
   printf("Game initialization successful.");
 
   return 0;
 }
-
 
 void render() {
 
@@ -315,8 +327,7 @@ int main(int argc, char *args[]) {
   uint64_t nextTic;
 
   int initState = init();
-  if (initState != 0)
-  {
+  if (initState != 0) {
     return initState;
   }
 

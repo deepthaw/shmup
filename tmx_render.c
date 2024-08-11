@@ -1,18 +1,20 @@
 #include <SDL_image.h>
 #include <SDL_render.h>
 #include "tmx_render.h"
-#include "main.h"
+//#include "main.h"
 
 void* SDL_tex_loader(const char *path) {
   return IMG_LoadTexture(gRenderer, path);
 }
 
+/*
 void draw_sprite(void *image, unsigned int dx, unsigned int dy, float opacity, unsigned int flags) {
   SDL_Rect dest_rect;
   dest_rect.x = dx;
   dest_rect.y = dy;
   SDL_RenderCopy(gRenderer, (SDL_Texture*)image, NULL, &dest_rect);
 }
+*/
 
 void draw_tile(void *image, unsigned int sx, unsigned int sy, unsigned int sw, unsigned int sh,
                unsigned int dx, unsigned int dy, float opacity, unsigned int flags) {
@@ -41,7 +43,7 @@ SDL_Texture* draw_layer(tmx_map *map, tmx_layer *layer, unsigned int x_offset_ti
   op = layer->opacity;
   SDL_SetRenderTarget(gRenderer, layer_tex);
   for (i=y_offset_tiles; i<y_offset_tiles + y_num_tiles; i++) {
-    for (j=x_offset_tiles; j<x_offset_tiles + x_num_tiles; j++) {
+    for (j=x_offset_tiles; j<x_offset_tiles + x_num_tiles && j < map->width; j++) {
       gid = (layer->content.gids[(i*map->width)+j]) & TMX_FLIP_BITS_REMOVAL;
       if (map->tiles[gid] != NULL) {
         ts = map->tiles[gid]->tileset;

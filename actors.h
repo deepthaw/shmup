@@ -5,15 +5,13 @@
 #include "sprites.h"
 
 typedef struct Actor {
-  Frame *currentframe;
-  SDL_Texture *currentTex;
-  Animation **animation;
+  Sprite *sprite;
+  Animation *currentframe;
+  uint32_t x,y;
   int elapsed; 
-  SDL_Rect hitbox;
-  SDL_Rect rect;
   int type;
   int state;
-  int frame;
+  enum Animations frame;
 } Actor;
 
 typedef struct actorlist {
@@ -25,4 +23,5 @@ Actor *createActor(Sprite **spritedata, const char* name, int type, int state);
 void setActorFrame(Actor *a, int frame); 
 void updateActorFrame(Actor *a);
 void addActor(actorlist **Actors, Actor *a);
+void setActorXY(Actor *a, int x, int y);
 

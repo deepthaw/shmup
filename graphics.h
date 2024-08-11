@@ -13,15 +13,16 @@
 #define SCROLL_STEP SCREEN_WIDTH
 #define SCROLL_STEP_TILES SCROLL_STEP / TILE_X
 
-extern SDL_Window *gWindow;
-extern SDL_Renderer *gRenderer;
-
 typedef struct renderList {
   SDL_Texture *screen[2];
   SDL_Texture *buffer;
   tmx_layer *layer;
   struct renderList *next;
 } renderList;
+
+extern SDL_Window *gWindow;
+extern SDL_Renderer *gRenderer;
+extern renderList *buffers;
 
 SDL_Renderer *initializeGraphics();
 renderList *initializeRenderList(tmx_map *map);
