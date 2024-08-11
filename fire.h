@@ -6,5 +6,4 @@ typedef struct {
 } framebuffer;
 
 framebuffer *initFireEffect(int fire_width, int fire_height);
-void spreadFire(int from, framebuffer *fire);
-SDL_Texture *texFromFire(framebuffer* fire); 
+SDL_Texture *fireEffectTex(); 

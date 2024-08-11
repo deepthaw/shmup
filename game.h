@@ -2,6 +2,6 @@
 //#include <tmx.h>
 
 typedef struct gameData {
-  int x, y;
+  float x, y;
 } gameData;
 

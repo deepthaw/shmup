@@ -1,12 +1,13 @@
-#include "game.h"
-#include "actors.h"
-#include "fire.h"
 #include "camera.h"
+#include "collide.h"
+#include "fire.h"
+#include "game.h"
 #include "graphics.h"
 #include "sound.h"
 #include "tmx.h"
 #include "tmx_render.h"
 #include <SDL.h>
+#include <SDL_scancode.h>
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -16,7 +17,7 @@
 #include <unistd.h>
 
 SDL_Window *gWindow = NULL;
-SDL_Rect view;
+SDL_FRect view;
 
 bool loadMedia();
 void processInput();
@@ -25,7 +26,7 @@ void render();
 void renderSprites();
 void renderBackgrounds();
 void resetView();
-bool initializeView(SDL_Rect *view);
+bool initializeView(SDL_FRect *view);
 bool initializeGame(gameData *game);
 bool initializeBuffers();
 void togglePause();
@@ -36,16 +37,16 @@ tmx_map *map;
 gameData game;
 renderList *buffers;
 actorlist *actors = NULL;
+actorlist *lasers = NULL;
 Actor *player;
 SDL_Renderer *gRenderer = NULL;
-framebuffer *fire;
 Sprite **spritedata;
 
 void initializeBackground();
 
 int screen_height_tiles = SCREEN_HEIGHT / TILE_Y;
 int screen_width_tiles = SCREEN_WIDTH / TILE_X;
-
+int laserCooldown = 30;
 int player_holdup, player_holddown, player_holdright, player_holdleft = 0;
 bool SCROLL_STOP = false;
 bool PAUSED = false;
@@ -70,42 +71,106 @@ bool loadMedia() {
   return success;
 }
 
+Frame *drawLaser(Actor *a) {
+#define laser_width 240
+#define laser_speed 36
+#define laser_body 96
+#define laser_head 8
+  uint32_t *laserpixels = calloc(3 * laser_width, sizeof(uint32_t));
+  int w = a->elapsed;
+  for (int i = 0; i < w + laser_speed && i < laser_width; i++) {
+    if (i >= w + laser_speed - laser_head) {
+      laserpixels[i + laser_width] = 0xFFFFFFFF;
+      laserpixels[i] = 0x22FFFFFF;
+      laserpixels[i + (laser_width * 2)] = 0x22FFFFFF;
+    } else if (i >= w + laser_speed - laser_body) {
+      laserpixels[i + laser_width] = 0xFF00FFFF;
+    } else if (i % 3) {
+      laserpixels[i + laser_width] = 0xFF00FFFF;
+    }
+  }
+
+  SDL_Surface *laserSurface = SDL_CreateRGBSurfaceWithFormatFrom(
+      laserpixels, laser_width, 3, 32, laser_width * 4, SDL_PIXELFORMAT_BGRA32);
+  SDL_Texture *laserTex = SDL_CreateTextureFromSurface(gRenderer, laserSurface);
+
+  SDL_Rect r = {0, 0, laser_width, 3};
+  Frame *laserFrame = malloc(sizeof(Frame));
+  laserFrame->tex = laserTex;
+  laserFrame->rect = r;
+  a->elapsed += 8;
+  return laserFrame;
+}
+
+
+Actor *createLaser(int x, int y) {
+  printf("spawned shot!\n");
+  Actor *laser = calloc(1, sizeof(Actor));
+  laser->currentframe = malloc(sizeof(Animation));
+  laser->currentframe->frame = drawLaser(laser);
+  laser->x = x;
+  laser->y = y;
+  return laser;
+}
+
+void fireLaser() {
+  if (laserCooldown >= 30) {
+    Actor *laser = createLaser(player->x + 16, player->y + 16);
+    addActor(&lasers, laser);
+    laserCooldown = 0;
+  }
+}
+
 void processInput() {
   const Uint8 *keys = SDL_GetKeyboardState(NULL);
-
+  int x, y;
+  x = y = 0;
   if (keys[SDL_SCANCODE_UP]) {
-    player->y--;
+    y--;
     player_holdup++;
+    if (player_holdup > 60) {
+      player_holdup = 60;
+    }
   } else {
-    player_holdup -= 6;
+    player_holdup--;
     if (player_holdup < 0)
       player_holdup = 0;
   }
   if (keys[SDL_SCANCODE_DOWN]) {
-    player->y++;
+    y++;
     player_holddown++;
+    if (player_holddown > 60) {
+      player_holddown = 60;
+    }
   } else {
-    player_holddown -= 6;
+    player_holddown--;
     if (player_holddown < 0)
       player_holddown = 0;
   };
   if (keys[SDL_SCANCODE_LEFT]) {
-    player->x--;
+    x--;
     player_holdleft++;
   }
   if (keys[SDL_SCANCODE_RIGHT]) {
-    player->x++;
+    x++;
     player_holdright++;
   }
-  if (keys[SDL_SCANCODE_R]) {
-    resetView();
+  if (keys[SDL_SCANCODE_LCTRL]) {
+    fireLaser();
   }
-  if (keys[SDL_SCANCODE_P]) {
-    togglePause();
+  if (checkHitTiles(player, 0, y)) {
+    y = 0;
+  }
+  if (checkHitTiles(player, x, 0)) {
+    x = 0;
+  }
+
+  if (x || y) {
+    moveActorXY(player, x, y);
   }
 }
 
-bool initializeView(SDL_Rect *view) {
+bool initializeView(SDL_FRect *view) {
   view->x = view->y = 0;
   view->h = SCREEN_HEIGHT;
   view->w = SCREEN_WIDTH;
@@ -118,6 +183,7 @@ void checkSpawns(int cell_x) {
     int32_t cell = layer->content.gids[cell_y * map->width + cell_x];
     int32_t GID = cell & TMX_FLIP_BITS_REMOVAL;
     if (GID) {
+      printf("spawning enemy at %u %u\n", cell_x, cell_y);
       spawnEnemyAt(GID, cell_x, cell_y);
     }
   }
@@ -131,72 +197,43 @@ void spawnEnemyAt(int32_t GID, int cell_x, int cell_y) {
   addActor(&actors, enemy);
 }
 
-SDL_Rect getHitBox(Actor *a) {
-  SDL_Rect r;
-  r.x = a->x + a->sprite->hitbox.x;
-  r.y = a->y + a->sprite->hitbox.y;
-  r.w = a->sprite->hitbox.w;
-  r.h = a->sprite->hitbox.h;
-  return r;
-}
-
-bool checkCollision(Actor *a, Actor *b) {
-  SDL_Rect r1 = getHitBox(a);
-  SDL_Rect r2 = getHitBox(b);
-
-  return (r1.x < r2.x + r2.w && r1.x + r1.w > r2.x && r1.y < r2.y + r2.h &&
-          r1.y + r1.h > r2.y);
-}
-
-bool checkHitTiles(Actor *a) {
-  int x = (getHitBox(a).x + game.x) / TILE_X;
-  int y = (getHitBox(a).y + game.y) / TILE_Y;
-  printf("Player is in tile %u, %u\n", x, y);
-  tmx_layer *layer = tmx_find_layer_by_name(map, "bg1");
-  return layer->content.gids[y * map->width + x]; 
-}
-
 void update() {
 
-  if (!PAUSED) {
-    if (game.x % TILE_X == 0) {
-      checkSpawns(game.x / TILE_X);
-    }
+  if (++laserCooldown > 30) laserCooldown = 30;
+  if ((int)game.x % TILE_X == 0) {
+    checkSpawns(game.x / TILE_X);
+  }
 
-    if ((game.x + SCREEN_WIDTH) / TILE_X >= map->width) {
-      SCROLL_STOP = true;
-    } else {
-      SCROLL_STOP = false;
-    }
+  if ((game.x + SCREEN_WIDTH) / TILE_X >= map->width) {
+    SCROLL_STOP = true;
+  } else {
+    SCROLL_STOP = false;
+  }
 
-    if (!SCROLL_STOP) {
-      game.x += SCROLL_SPEED;
-      view.x += SCROLL_SPEED;
-      game.y = 0;
-      view.y = 0;
-    }
+  if (!SCROLL_STOP) {
+    game.x += SCROLL_SPEED;
+    view.x += SCROLL_SPEED;
+    game.y = 0;
+    view.y = 0;
+  }
 
-    if (view.x >= SCROLL_STEP) {
-      scrollScreen(map, game.x + SCROLL_STEP, game.y, view.x, view.y, SCROLL_STEP / TILE_X,
-                   SCREEN_HEIGHT / TILE_Y);
-      view.x = view.x - SCROLL_STEP;
-    }
+  if (view.x >= SCROLL_STEP) {
+    scrollScreen(map, game.x + SCROLL_STEP, game.y, view.x, view.y,
+                 SCROLL_STEP / TILE_X, SCREEN_HEIGHT / TILE_Y);
+    view.x = view.x - SCROLL_STEP;
+  }
 
-    actorlist *current = actors;
-    while (current) {
-      if (current->actor->type != PLAYER) {
-        if (checkCollision(player, current->actor)) {
-          printf("Collision!\n");
-        }
+  actorlist *current = actors;
+  while (current) {
+    if (current->actor->type != PLAYER) {
+      if (checkCollision(player, current->actor)) {
       }
-      current = current->next;
     }
+    current = current->next;
+  }
 
-    if (checkHitTiles(player)) {
-      printf("Hit a tile!\n");
-    }
-
-    return;
+  if (checkHitTiles(player, 0, 0)) {
+    moveActorXY(player, -SCROLL_SPEED, 0);
   }
 }
 
@@ -234,12 +271,44 @@ void initializeBackGround() {
   printf("ending initializebackground\n");
 }
 
+void renderShots() {
+  actorlist *current = lasers;
+  while (current != NULL) {
+    Actor *a = current->actor;
+    Frame *laserFrame = drawLaser(a);
+    a->x = a->x + 8;
+    SDL_Rect r = {a->x, a->y, laserFrame->rect.w, laserFrame->rect.h};
+    SDL_RenderCopy(gRenderer, laserFrame->tex, NULL, &r);
+    if (a->elapsed >= 1960) {
+      lasers = current->next;
+      free(current);
+      current = lasers;
+      printf("laser removed!\n");
+    } else {
+      current = current->next;
+    }
+  }
+}
+
 void renderActors() {
   actorlist *current = actors;
   while (current != NULL) {
     Actor *a = current->actor;
     if (a->type == ENEMY) {
       a->x = a->x - 2;
+    }
+    if (a->type == PLAYER) {
+      if (player_holdup - player_holddown > 40) {
+        setActorFrame(a, SPFULLUP);
+      } else if (player_holdup - player_holddown > 20) {
+        setActorFrame(a, SPTILTUP);
+      } else if (player_holddown - player_holdup > 40) {
+        setActorFrame(a, SPFULLDN);
+      } else if (player_holddown - player_holdup> 20) {
+        setActorFrame(a, SPTILTDN);
+      } else if (a->frame != SPNEUTRAL) {
+        setActorFrame(a, SPNEUTRAL);
+      }
     }
     SDL_Rect r = {a->x, a->y, a->sprite->rect.w, a->sprite->rect.h};
     SDL_RenderCopy(gRenderer, a->currentframe->frame->tex, NULL, &r);
@@ -284,7 +353,7 @@ int init() {
     return 1;
   }
 
-  fire = initFireEffect(320, 120);
+  initFireEffect(320, 120);
   initializeBackGround();
   initializeView(&view);
   player = createActor(spritedata, "P_VIPER", PLAYER, 0);
@@ -300,16 +369,19 @@ void render() {
   SDL_RenderClear(gRenderer);
   renderList *buffer = buffers;
   while (buffer) {
-    SDL_Rect r = view;
-    r.x = view.x * buffer->layer->parallaxx;
-    r.y = view.y * buffer->layer->parallaxy;
+    SDL_Rect r;
+    r.h = (int)view.h;
+    r.w = (int)view.w;
+    r.x = (int)view.x * buffer->layer->parallaxx;
+    r.y = (int)view.y * buffer->layer->parallaxy;
     SDL_RenderCopy(gRenderer, buffer->buffer, &r, NULL);
     buffer = buffer->next;
   }
 
   renderActors();
   // move fire elsewhere
-  SDL_RenderCopy(gRenderer, texFromFire(fire), NULL, NULL);
+  renderShots();
+  SDL_RenderCopy(gRenderer, fireEffectTex(), NULL, NULL);
   SDL_RenderSetScale(gRenderer, SCALE, SCALE);
   SDL_RenderPresent(gRenderer);
 }
@@ -338,11 +410,19 @@ int main(int argc, char *args[]) {
       if (e.type == SDL_QUIT) {
         quit = true;
       }
+      if (e.type == SDL_KEYDOWN) {
+        const Uint8 *keys = SDL_GetKeyboardState(NULL);
+        if (keys[SDL_SCANCODE_P]) {
+          togglePause();
+        }
+      }
     }
     nextTic = SDL_GetTicks64() + SCREEN_TICKS_PER_FRAME;
     processInput();
-    update();
-    render();
+    if (!PAUSED) {
+      update();
+      render();
+    }
     while (SDL_GetTicks64() <= nextTic)
       ;
   }

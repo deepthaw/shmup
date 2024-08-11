@@ -2,7 +2,7 @@
 
 void setActorFrame(Actor *a, int frame) {
   a->frame = frame;
-  a->elapsed = 0;
+//  a->elapsed = 0;
   a->currentframe = a->sprite->animation[frame];
 }
 
@@ -71,4 +71,9 @@ void addActor(actorlist **actors, Actor *a) {
 void setActorXY(Actor *a, int x, int y) {
   a->x = x;
   a->y = y;
+}
+
+void moveActorXY(Actor *a, float x, float y) {
+  a->x += x;
+  a->y += y;
 }

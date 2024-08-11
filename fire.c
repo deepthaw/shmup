@@ -12,12 +12,14 @@ uint32_t firePalette[] = {
     0xFFB7AF2F, 0xFFB7B72F, 0xFFB7B737, 0xFFCFCF6F, 0xFFDFDF9F, 0xFFEFEFC7,
     0xFFFFFFFF};
 
+static framebuffer *fire;
+static int firetimer;
+
 framebuffer *initFireEffect(int fire_width, int fire_height) {
-  framebuffer *fire = malloc(sizeof(framebuffer));
+  fire = malloc(sizeof(framebuffer));
   fire->w = fire_width;
   fire->h = fire_height;
   fire->pixels = calloc(fire->w * fire->h, sizeof(*fire->pixels));
-
 
   for (int y = 0; y != fire->h; y++) {
     for (int x = 0; x != fire->w; x++) {
@@ -31,7 +33,7 @@ framebuffer *initFireEffect(int fire_width, int fire_height) {
   return fire;
 }
 
-void spreadFire(int from, framebuffer *fire) {
+void spreadFire(int from) {
   int r = rand() % 4;
   int to = from - fire->w - r + 1;
   fire->pixels[to] = fire->pixels[from] - r;
@@ -39,14 +41,13 @@ void spreadFire(int from, framebuffer *fire) {
     fire->pixels[to] = 0;
 }
 
-SDL_Texture *texFromFire(framebuffer* fire) {
-  static int firetimer;
+SDL_Texture *fireEffectTex() {
 
   if (++firetimer > 0)
   {
     for (int x = 0; x < fire->w; x++) {
       for (int y = 1; y < fire->h; y++) {
-        spreadFire(y * fire->w + x, fire);
+        spreadFire(y * fire->w + x);
       }
     }
     firetimer = 0;
