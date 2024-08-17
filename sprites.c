@@ -6,7 +6,7 @@ const char *frameTable[NUMFRAMES] = {"SPNEUTRAL", "SPFORWARD", "SPREVERSE",
                                      "SPTILTUP",  "SPFULLUP",  "SPTILTDN",
                                      "SPFULLDN", "HITBOX"};
 
-const char *spriteNames[NUMSPRITENAMES] = {"P_VIPER", "E_ROLLER"};
+const char *spriteNames[NUMSPRITENAMES] = {"P_VIPER", "P_BETA", "E_ROLLER"};
 
 Frame *loadSpriteFromDisk(const char *filename) {
   Frame *t = malloc(sizeof(Frame));

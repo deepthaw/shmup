@@ -43,3 +43,4 @@ bin/
 
 #debug/core dumps
 core.*
+compile_commands.json

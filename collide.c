@@ -1,7 +1,5 @@
 #include "collide.h"
 #include "game.h"
-#include <SDL.h>
-#include <stdbool.h>
 
 extern gameData game;
 

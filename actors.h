@@ -1,7 +1,7 @@
 /* Actors are the actual entities that move around the screen
  * they use sprites as their underlying graphical data
  */
-
+#pragma once
 #include "sprites.h"
 
 typedef struct Actor {

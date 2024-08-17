@@ -5,7 +5,7 @@
  * linked lists so that they animated in a loop indefinitely.
  *
 */
-
+#pragma once
 #include <glib.h>
 #include <SDL.h>
 #include <SDL_image.h>
@@ -50,6 +50,7 @@ enum spriteType {
 
 enum spriteNames {
   P_VIPER,
+  P_BETA,
   E_ROLLER,
   NUMSPRITENAMES
 };

@@ -3,10 +3,12 @@
 #include "fire.h"
 #include "game.h"
 #include "graphics.h"
+#include "lasers.h"
 #include "sound.h"
 #include "tmx.h"
 #include "tmx_render.h"
 #include <SDL.h>
+#include <SDL_render.h>
 #include <SDL_scancode.h>
 #include <pthread.h>
 #include <stdbool.h>
@@ -34,19 +36,17 @@ void checkSpawns(int cell_x);
 void spawnEnemyAt(int32_t GID, int cell_x, int cell_y);
 
 tmx_map *map;
-gameData game;
 renderList *buffers;
 actorlist *actors = NULL;
 actorlist *lasers = NULL;
-Actor *player;
+Actor *player = NULL;
 SDL_Renderer *gRenderer = NULL;
 Sprite **spritedata;
-
+gameData game;
 void initializeBackground();
 
 int screen_height_tiles = SCREEN_HEIGHT / TILE_Y;
 int screen_width_tiles = SCREEN_WIDTH / TILE_X;
-int laserCooldown = 30;
 int player_holdup, player_holddown, player_holdright, player_holdleft = 0;
 bool SCROLL_STOP = false;
 bool PAUSED = false;
@@ -69,56 +69,6 @@ bool loadMedia() {
   }
   printf("loadMedia success\n");
   return success;
-}
-
-Frame *drawLaser(Actor *a) {
-#define laser_width 240
-#define laser_speed 36
-#define laser_body 96
-#define laser_head 8
-  uint32_t *laserpixels = calloc(3 * laser_width, sizeof(uint32_t));
-  int w = a->elapsed;
-  for (int i = 0; i < w + laser_speed && i < laser_width; i++) {
-    if (i >= w + laser_speed - laser_head) {
-      laserpixels[i + laser_width] = 0xFFFFFFFF;
-      laserpixels[i] = 0x22FFFFFF;
-      laserpixels[i + (laser_width * 2)] = 0x22FFFFFF;
-    } else if (i >= w + laser_speed - laser_body) {
-      laserpixels[i + laser_width] = 0xFF00FFFF;
-    } else if (i % 3) {
-      laserpixels[i + laser_width] = 0xFF00FFFF;
-    }
-  }
-
-  SDL_Surface *laserSurface = SDL_CreateRGBSurfaceWithFormatFrom(
-      laserpixels, laser_width, 3, 32, laser_width * 4, SDL_PIXELFORMAT_BGRA32);
-  SDL_Texture *laserTex = SDL_CreateTextureFromSurface(gRenderer, laserSurface);
-
-  SDL_Rect r = {0, 0, laser_width, 3};
-  Frame *laserFrame = malloc(sizeof(Frame));
-  laserFrame->tex = laserTex;
-  laserFrame->rect = r;
-  a->elapsed += 8;
-  return laserFrame;
-}
-
-
-Actor *createLaser(int x, int y) {
-  printf("spawned shot!\n");
-  Actor *laser = calloc(1, sizeof(Actor));
-  laser->currentframe = malloc(sizeof(Animation));
-  laser->currentframe->frame = drawLaser(laser);
-  laser->x = x;
-  laser->y = y;
-  return laser;
-}
-
-void fireLaser() {
-  if (laserCooldown >= 30) {
-    Actor *laser = createLaser(player->x + 16, player->y + 16);
-    addActor(&lasers, laser);
-    laserCooldown = 0;
-  }
 }
 
 void processInput() {
@@ -199,7 +149,7 @@ void spawnEnemyAt(int32_t GID, int cell_x, int cell_y) {
 
 void update() {
 
-  if (++laserCooldown > 30) laserCooldown = 30;
+  if (++game.laserCooldown > 30) game.laserCooldown = 30;
   if ((int)game.x % TILE_X == 0) {
     checkSpawns(game.x / TILE_X);
   }
@@ -276,6 +226,7 @@ void renderShots() {
   while (current != NULL) {
     Actor *a = current->actor;
     Frame *laserFrame = drawLaser(a);
+    SDL_SetTextureBlendMode(laserFrame->tex, SDL_BLENDMODE_ADD);
     a->x = a->x + 8;
     SDL_Rect r = {a->x, a->y, laserFrame->rect.w, laserFrame->rect.h};
     SDL_RenderCopy(gRenderer, laserFrame->tex, NULL, &r);
@@ -353,7 +304,7 @@ int init() {
     return 1;
   }
 
-  initFireEffect(320, 120);
+  initFireEffect(320, 240);
   initializeBackGround();
   initializeView(&view);
   player = createActor(spritedata, "P_VIPER", PLAYER, 0);
